@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS items (
     modality TEXT,
     author_id TEXT,
     tags TEXT,
+    image_url TEXT,
     created_at TEXT
 );
 
@@ -30,9 +31,19 @@ CREATE TABLE IF NOT EXISTS user_events (
 """
 
 
+async def _ensure_items_column(db, column_name: str, ddl: str):
+    cur = await db.execute("PRAGMA table_info(items)")
+    columns = await cur.fetchall()
+    names = {c[1] for c in columns}
+    if column_name not in names:
+        await db.execute(ddl)
+
+
 async def init_db():
     async with aiosqlite.connect(SQLITE_PATH) as db:
         await db.executescript(CREATE_TABLES_SQL)
+        # 兼容已存在的旧表结构
+        await _ensure_items_column(db, "image_url", "ALTER TABLE items ADD COLUMN image_url TEXT")
         await db.commit()
 
 
@@ -71,8 +82,10 @@ async def insert_item(item):
     async with aiosqlite.connect(SQLITE_PATH) as db:
         await db.execute(
             """
-            INSERT OR REPLACE INTO items(item_id, title, description, modality, author_id, tags, created_at)
-            VALUES(?, ?, ?, ?, ?, ?, ?)
+            INSERT OR REPLACE INTO items(
+                item_id, title, description, modality, author_id, tags, image_url, created_at
+            )
+            VALUES(?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 item["item_id"],
@@ -81,6 +94,7 @@ async def insert_item(item):
                 item["modality"],
                 item.get("author_id", ""),
                 json.dumps(item.get("tags", []), ensure_ascii=False),
+                item.get("image_url", ""),
                 item.get("created_at", ""),
             ),
         )
@@ -100,7 +114,7 @@ async def get_latest_items(limit=20):
     async with aiosqlite.connect(SQLITE_PATH) as db:
         cur = await db.execute(
             """
-            SELECT item_id, title, description, modality, author_id, tags, created_at
+            SELECT item_id, title, description, modality, author_id, tags, image_url, created_at
             FROM items
             ORDER BY created_at DESC, item_id DESC
             LIMIT ?
@@ -119,7 +133,8 @@ async def get_latest_items(limit=20):
                 "modality": r[3],
                 "author_id": r[4],
                 "tags": json.loads(r[5]) if r[5] else [],
-                "created_at": r[6],
+                "image_url": r[6] or "",
+                "created_at": r[7],
             }
         )
     return result

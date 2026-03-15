@@ -35,6 +35,7 @@ class ItemData(BaseModel):
     modality: str
     author_id: Optional[str] = ""
     tags: Optional[List[str]] = []
+    image_url: Optional[str] = ""
     created_at: Optional[str] = ""
 
 
@@ -133,6 +134,7 @@ async def refresh_feed(req: EventRequest):
                 "modality": p.payload.get("modality", ""),
                 "author_id": p.payload.get("author_id", ""),
                 "tags": p.payload.get("tags", []),
+                "image_url": p.payload.get("image_url", ""),
                 "created_at": p.payload.get("created_at", ""),
             }
         )

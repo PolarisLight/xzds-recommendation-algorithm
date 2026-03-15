@@ -2,16 +2,17 @@ import json
 import sqlite3
 
 SQLITE_PATH = "demo_rec.sqlite"
-VECTOR_DIM = 384
+VECTOR_DIM = 512
 
 TEST_USER = {"user_id": "test_user_001"}
 TEST_ITEM = {
     "item_id": 10001,
     "title": "测试推文：春天来了",
-    "description": "这是一条用于验证入库功能的测试推文",
-    "modality": "text",
+    "description": "这是一条用于验证入库功能的测试推文（包含图片）",
+    "modality": "image_text",
     "author_id": "author_test_01",
-    "tags": ["测试", "推文", "入库"],
+    "tags": ["测试", "推文", "入库", "多模态"],
+    "image_url": "https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d",
     "created_at": "2026-03-15 12:00:00",
 }
 
@@ -28,6 +29,7 @@ CREATE TABLE IF NOT EXISTS items (
     modality TEXT,
     author_id TEXT,
     tags TEXT,
+    image_url TEXT,
     created_at TEXT
 );
 """
@@ -46,8 +48,8 @@ def main():
 
         conn.execute(
             """
-            INSERT OR REPLACE INTO items(item_id, title, description, modality, author_id, tags, created_at)
-            VALUES(?, ?, ?, ?, ?, ?, ?)
+            INSERT OR REPLACE INTO items(item_id, title, description, modality, author_id, tags, image_url, created_at)
+            VALUES(?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 TEST_ITEM["item_id"],
@@ -56,6 +58,7 @@ def main():
                 TEST_ITEM["modality"],
                 TEST_ITEM["author_id"],
                 json.dumps(TEST_ITEM["tags"], ensure_ascii=False),
+                TEST_ITEM["image_url"],
                 TEST_ITEM["created_at"],
             ),
         )
@@ -66,7 +69,7 @@ def main():
             (TEST_USER["user_id"],),
         ).fetchone()
         item_row = conn.execute(
-            "SELECT item_id, title, modality, author_id, tags FROM items WHERE item_id=?",
+            "SELECT item_id, title, modality, author_id, tags, image_url FROM items WHERE item_id=?",
             (TEST_ITEM["item_id"],),
         ).fetchone()
 
@@ -82,6 +85,7 @@ def main():
                 "modality": item_row[2],
                 "author_id": item_row[3],
                 "tags": json.loads(item_row[4]) if item_row[4] else [],
+                "image_url": item_row[5] or "",
             },
         )
     finally:

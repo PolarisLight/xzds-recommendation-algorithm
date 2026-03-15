@@ -4,3 +4,7 @@ qdrant-client
 numpy
 aiosqlite
 pydantic
+sentence-transformers
+torch
+Pillow
+requests
