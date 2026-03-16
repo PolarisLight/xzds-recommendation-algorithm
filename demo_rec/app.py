@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -19,6 +19,10 @@ from recommender import (
     search_similar_items,
     update_profile_vector,
     upsert_item_to_qdrant,
+    get_qdrant_collection,
+    list_qdrant_collections,
+    qdrant_healthcheck,
+    scroll_qdrant_points,
 )
 
 app = FastAPI(title="Demo Recommendation System")
@@ -52,6 +56,12 @@ class EventRequest(BaseModel):
     recent_item_ids: List[int] = []
     recent_events: List[str] = []
     k: Optional[int] = DEFAULT_K
+
+
+class QdrantScrollRequest(BaseModel):
+    limit: int = 10
+    with_payload: bool = True
+    with_vector: bool = False
 
 
 @app.on_event("startup")
@@ -140,3 +150,43 @@ async def refresh_feed(req: EventRequest):
         )
 
     return {"user_id": req.user_id, "mode": "personalized", "items": items}
+
+
+@app.get("/readyz")
+async def readyz():
+    qdrant = await qdrant_healthcheck()
+    return {"status": "ok" if qdrant["ok"] else "degraded", "qdrant": qdrant}
+
+
+@app.get("/qdrant/collections")
+async def qdrant_collections():
+    names = await list_qdrant_collections()
+    return {"collections": names}
+
+
+@app.get("/qdrant/collections/{collection_name}")
+async def qdrant_collection_detail(collection_name: str):
+    info = await get_qdrant_collection(collection_name)
+    return info.model_dump() if hasattr(info, "model_dump") else info.dict()
+
+
+@app.post("/qdrant/collections/{collection_name}/points/scroll")
+async def qdrant_scroll(collection_name: str, req: QdrantScrollRequest):
+    points, next_page_offset = await scroll_qdrant_points(
+        collection_name=collection_name,
+        limit=req.limit,
+        with_payload=req.with_payload,
+        with_vectors=req.with_vector,
+    )
+
+    def point_to_dict(p: Any):
+        return {
+            "id": p.id,
+            "payload": p.payload,
+            "vector": p.vector if req.with_vector else None,
+        }
+
+    return {
+        "points": [point_to_dict(p) for p in points],
+        "next_page_offset": next_page_offset,
+    }

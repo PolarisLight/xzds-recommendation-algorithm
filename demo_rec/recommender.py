@@ -140,3 +140,36 @@ async def search_similar_items(user_vec, limit=20):
         with_payload=True,
     )
     return res.points
+
+
+async def qdrant_healthcheck():
+    try:
+        await client.get_collections()
+        return {"ok": True, "error": ""}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+async def list_qdrant_collections():
+    data = await client.get_collections()
+    return [c.name for c in data.collections]
+
+
+async def get_qdrant_collection(collection_name: str):
+    info = await client.get_collection(collection_name=collection_name)
+    return info
+
+
+async def scroll_qdrant_points(
+    collection_name: str,
+    limit: int = 10,
+    with_payload: bool = True,
+    with_vectors: bool = False,
+):
+    points, next_page_offset = await client.scroll(
+        collection_name=collection_name,
+        limit=limit,
+        with_payload=with_payload,
+        with_vectors=with_vectors,
+    )
+    return points, next_page_offset
