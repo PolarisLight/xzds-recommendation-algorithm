@@ -202,3 +202,208 @@
     }
   ]
 }
+
+{
+  "items": [
+    {
+      "item_id": 2001,
+      "title": "校园晨跑打卡",
+      "description": "记录今天早上 5 公里晨跑，配速 6'10\"。",
+      "modality": "text",
+      "author_id": "u1001",
+      "tags": ["校园", "运动", "晨跑"],
+      "image_url": "",
+      "created_at": "2026-03-16 08:05:00"
+    },
+    {
+      "item_id": 2002,
+      "title": "食堂新出的牛肉面",
+      "description": "今天中午试了新窗口，汤头挺香。",
+      "modality": "image_text",
+      "author_id": "u1002",
+      "tags": ["美食", "食堂", "日常"],
+      "image_url": "https://images.unsplash.com/photo-1547592180-85f173990554",
+      "created_at": "2026-03-16 12:10:00"
+    },
+    {
+      "item_id": 2003,
+      "title": "线代复习笔记",
+      "description": "把特征值和相似对角化做了整理，欢迎交流。",
+      "modality": "text",
+      "author_id": "u1003",
+      "tags": ["学习", "数学", "笔记"],
+      "image_url": "",
+      "created_at": "2026-03-16 13:20:00"
+    },
+    {
+      "item_id": 2004,
+      "title": "晚霞真的绝了",
+      "description": "图书馆门口拍到的晚霞，颜色很温柔。",
+      "modality": "image_text",
+      "author_id": "u1004",
+      "tags": ["摄影", "晚霞", "校园"],
+      "image_url": "https://images.unsplash.com/photo-1470770841072-f978cf4d019e",
+      "created_at": "2026-03-16 18:45:00"
+    },
+    {
+      "item_id": 2005,
+      "title": "Python 异步踩坑总结",
+      "description": "整理了 asyncio 常见问题和解决方式。",
+      "modality": "text",
+      "author_id": "u1005",
+      "tags": ["编程", "Python", "异步"],
+      "image_url": "",
+      "created_at": "2026-03-16 20:15:00"
+    },
+    {
+      "item_id": 2006,
+      "title": "操场夜跑音乐推荐",
+      "description": "分享几首适合夜跑的节奏歌单。",
+      "modality": "text",
+      "author_id": "u1001",
+      "tags": ["音乐", "夜跑", "推荐"],
+      "image_url": "",
+      "created_at": "2026-03-17 07:40:00"
+    },
+    {
+      "item_id": 2007,
+      "title": "寝室收纳改造前后",
+      "description": "花了 2 小时把桌面和衣柜都整理了。",
+      "modality": "image_text",
+      "author_id": "u1002",
+      "tags": ["生活", "收纳", "寝室"],
+      "image_url": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85",
+      "created_at": "2026-03-17 09:10:00"
+    },
+    {
+      "item_id": 2008,
+      "title": "校园流浪猫日记",
+      "description": "今天又在教学楼后面遇到小橘猫。",
+      "modality": "image_text",
+      "author_id": "u1003",
+      "tags": ["猫咪", "校园", "治愈"],
+      "image_url": "https://images.unsplash.com/photo-1511044568932-338cba0ad803",
+      "created_at": "2026-03-17 11:30:00"
+    },
+    {
+      "item_id": 2009,
+      "title": "考研英语长难句",
+      "description": "今天精读了 5 句经典长难句，附拆解思路。",
+      "modality": "text",
+      "author_id": "u1004",
+      "tags": ["英语", "考研", "学习"],
+      "image_url": "",
+      "created_at": "2026-03-17 14:05:00"
+    },
+    {
+      "item_id": 2010,
+      "title": "羽毛球双打小技巧",
+      "description": "后场高远球和网前封网的配合很关键。",
+      "modality": "text",
+      "author_id": "u1005",
+      "tags": ["运动", "羽毛球", "技巧"],
+      "image_url": "",
+      "created_at": "2026-03-17 17:20:00"
+    },
+    {
+      "item_id": 2011,
+      "title": "图书馆自习位攻略",
+      "description": "不同楼层安静程度和插座分布整理好了。",
+      "modality": "text",
+      "author_id": "u1001",
+      "tags": ["学习", "图书馆", "攻略"],
+      "image_url": "",
+      "created_at": "2026-03-18 08:25:00"
+    },
+    {
+      "item_id": 2012,
+      "title": "周末爬山vlog截图",
+      "description": "山顶风景很棒，空气特别好。",
+      "modality": "image_text",
+      "author_id": "u1002",
+      "tags": ["旅行", "爬山", "风景"],
+      "image_url": "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b",
+      "created_at": "2026-03-18 10:50:00"
+    },
+    {
+      "item_id": 2013,
+      "title": "前端组件化心得",
+      "description": "最近做项目对组件边界有了新理解。",
+      "modality": "text",
+      "author_id": "u1003",
+      "tags": ["前端", "工程化", "总结"],
+      "image_url": "",
+      "created_at": "2026-03-18 13:00:00"
+    },
+    {
+      "item_id": 2014,
+      "title": "奶茶店隐藏菜单",
+      "description": "推荐三分糖+少冰+椰果，口感不错。",
+      "modality": "image_text",
+      "author_id": "u1004",
+      "tags": ["奶茶", "探店", "美食"],
+      "image_url": "https://images.unsplash.com/photo-1558857563-b371033873b8",
+      "created_at": "2026-03-18 15:45:00"
+    },
+    {
+      "item_id": 2015,
+      "title": "数据库索引复盘",
+      "description": "B+ 树索引和联合索引命中规则笔记。",
+      "modality": "text",
+      "author_id": "u1005",
+      "tags": ["数据库", "后端", "学习"],
+      "image_url": "",
+      "created_at": "2026-03-18 19:30:00"
+    },
+    {
+      "item_id": 2016,
+      "title": "社团招新海报",
+      "description": "本周六下午社团招新，欢迎来玩。",
+      "modality": "image_text",
+      "author_id": "u1001",
+      "tags": ["社团", "活动", "招新"],
+      "image_url": "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40",
+      "created_at": "2026-03-19 09:15:00"
+    },
+    {
+      "item_id": 2017,
+      "title": "宿舍电费省钱技巧",
+      "description": "空调和热水器的使用时段很关键。",
+      "modality": "text",
+      "author_id": "u1002",
+      "tags": ["生活", "省钱", "宿舍"],
+      "image_url": "",
+      "created_at": "2026-03-19 11:05:00"
+    },
+    {
+      "item_id": 2018,
+      "title": "摄影构图练习",
+      "description": "用三分法和引导线拍了一组校园照片。",
+      "modality": "image_text",
+      "author_id": "u1003",
+      "tags": ["摄影", "构图", "练习"],
+      "image_url": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee",
+      "created_at": "2026-03-19 14:40:00"
+    },
+    {
+      "item_id": 2019,
+      "title": "概率论错题本",
+      "description": "把最近一周错题按知识点重新归类。",
+      "modality": "text",
+      "author_id": "u1004",
+      "tags": ["概率论", "错题", "复习"],
+      "image_url": "",
+      "created_at": "2026-03-19 17:25:00"
+    },
+    {
+      "item_id": 2020,
+      "title": "夜景延时摄影",
+      "description": "教学楼夜景延时，灯光变化很有氛围。",
+      "modality": "image_text",
+      "author_id": "u1005",
+      "tags": ["夜景", "摄影", "延时"],
+      "image_url": "https://images.unsplash.com/photo-1477959858617-67f85cf4f1df",
+      "created_at": "2026-03-19 21:50:00"
+    }
+  ]
+}
