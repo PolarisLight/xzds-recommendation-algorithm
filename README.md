@@ -71,6 +71,14 @@ uvicorn demo_rec.app:app --host 0.0.0.0 --port 8000 --reload --app-dir demo_rec
 - Swagger UI: `http://127.0.0.1:8000/docs`
 - ReDoc: `http://127.0.0.1:8000/redoc`
 
+## 2.5 安装向量化模型sentence-clip
+
+由于国内环境原因，可能需要自行下载向量化模型，并放置在特定位置（文件树中已留空，或自行修改config.py文件路径）
+
+``` bash
+git clone https://huggingface.co/sentence-transformers/clip-ViT-B-32
+```
+
 ---
 
 ## 3. 数据模型
