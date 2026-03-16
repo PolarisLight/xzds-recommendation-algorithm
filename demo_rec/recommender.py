@@ -12,11 +12,13 @@ from config import (
     EVENT_ALPHA,
     MULTIMODAL_MODEL_NAME,
     QDRANT_COLLECTION,
+    QDRANT_LOCAL_PATH,
     QDRANT_URL,
     VECTOR_DIM,
 )
 
-client = AsyncQdrantClient(url=QDRANT_URL)
+_client_config = {"url": QDRANT_URL} if QDRANT_URL else {"path": QDRANT_LOCAL_PATH}
+client = AsyncQdrantClient(**_client_config)
 _model: Optional[SentenceTransformer] = None
 
 
@@ -91,7 +93,6 @@ async def upsert_item_to_qdrant(item):
         try:
             image_vector = embed_image_real(image_url)
         except Exception:
-            # 图片失败时仅使用文本向量，保证主流程可用
             image_vector = None
 
     vector = fuse_multimodal_embedding(text_vector, image_vector)

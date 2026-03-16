@@ -1,20 +1,23 @@
-QDRANT_URL = "http://localhost:6333"
+import os
+
+QDRANT_URL = os.getenv("QDRANT_URL", "").strip()
+QDRANT_LOCAL_PATH = os.getenv("QDRANT_LOCAL_PATH", "qdrant_data")
 QDRANT_COLLECTION = "items_demo"
 
 SQLITE_PATH = "demo_rec.sqlite"
 
-# CLIP ViT-B/32 输出 512 维向量
+# CLIP ViT-B/32 output vector dim
 VECTOR_DIM = 512
 
-# 行为权重
+# event weights
 EVENT_ALPHA = {
     "view": 0.08,
     "like": 0.15,
     "favorite": 0.25,
 }
 
-# 冷启动默认返回数量
+# cold start default result count
 DEFAULT_K = 20
 
-# 真实多模态 embedding 模型（文本 + 图片）
+# multimodal embedding model (text + image)
 MULTIMODAL_MODEL_NAME = "sentence-transformers/clip-ViT-B-32"
