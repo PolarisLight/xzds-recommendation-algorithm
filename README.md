@@ -205,6 +205,9 @@ curl -X POST 'http://127.0.0.1:8000/init/items' \
       }
     ]
   }'
+
+  curl -X POST "http://localhost:8000/init/users" -H "Content-Type: application/json" --data-binary @demo_rec/data/users_batch.json
+curl -X POST "http://localhost:8000/init/items" -H "Content-Type: application/json" --data-binary @demo_rec/data/items_batch.json
 ```
 
 **响应示例**：
@@ -296,7 +299,7 @@ curl -X POST 'http://127.0.0.1:8000/feed/refresh' \
   -H 'Content-Type: application/json' \
   -d '{
     "user_id":"user_001",
-    "recent_item_ids":[1001,1002],
+    "recent_item_ids":[2001,2002],
     "recent_events":["view","favorite"],
     "k":10
   }'
@@ -359,7 +362,7 @@ curl -X POST 'http://127.0.0.1:8000/feed/refresh' \
 **示例**：
 
 ```bash
-curl 'http://127.0.0.1:8000/readyz'
+curl "http://127.0.0.1:8000/readyz"
 ```
 
 **响应示例**：
@@ -383,7 +386,7 @@ curl 'http://127.0.0.1:8000/readyz'
 **示例**：
 
 ```bash
-curl 'http://127.0.0.1:8000/qdrant/collections'
+curl "http://127.0.0.1:8000/qdrant/collections"
 ```
 
 **响应示例**：
@@ -403,7 +406,7 @@ curl 'http://127.0.0.1:8000/qdrant/collections'
 **示例**：
 
 ```bash
-curl 'http://127.0.0.1:8000/qdrant/collections/items_demo'
+curl "http://127.0.0.1:8000/qdrant/collections/items_demo"
 ```
 
 ---
@@ -417,9 +420,7 @@ curl 'http://127.0.0.1:8000/qdrant/collections/items_demo'
 **示例**：
 
 ```bash
-curl -X POST 'http://127.0.0.1:8000/qdrant/collections/items_demo/points/scroll' \
-  -H 'Content-Type: application/json' \
-  -d '{"limit":5,"with_payload":true,"with_vector":false}'
+curl -X POST "http://127.0.0.1:8000/qdrant/collections/items_demo/points/scroll" -H "Content-Type: application/json" -d "{\"limit\":5,\"with_payload\":true,\"with_vector\":false}"
 ```
 
 **响应示例**：

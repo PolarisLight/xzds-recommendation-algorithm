@@ -1,9 +1,9 @@
 from typing import Any, List, Optional
 
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-from config import DEFAULT_K
+from config import DEFAULT_K, SQLITE_PATH
 from db import (
     create_user,
     get_latest_items,
@@ -37,10 +37,10 @@ class ItemData(BaseModel):
     title: str
     description: str
     modality: str
-    author_id: Optional[str] = ""
-    tags: Optional[List[str]] = []
-    image_url: Optional[str] = ""
-    created_at: Optional[str] = ""
+    author_id: str = ""  # 不用 Optional
+    tags: List[str] = Field(default_factory=list)
+    image_url: str = ""
+    created_at: str = ""
 
 
 class ItemInitRequest(BaseModel):
@@ -53,9 +53,9 @@ class CreateUserRequest(BaseModel):
 
 class EventRequest(BaseModel):
     user_id: str
-    recent_item_ids: List[int] = []
-    recent_events: List[str] = []
-    k: Optional[int] = DEFAULT_K
+    recent_item_ids: List[int] = Field(default_factory=list)
+    recent_events: List[str] = Field(default_factory=list)
+    k: int = DEFAULT_K
 
 
 class QdrantScrollRequest(BaseModel):
@@ -66,6 +66,7 @@ class QdrantScrollRequest(BaseModel):
 
 @app.on_event("startup")
 async def startup():
+    print("APP SQLITE_PATH =", SQLITE_PATH)
     await init_db()
     await init_qdrant()
 
