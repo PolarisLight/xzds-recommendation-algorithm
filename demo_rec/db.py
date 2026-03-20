@@ -48,6 +48,10 @@ async def _connect():
     return db
 
 
+async def _close_db(db):
+    await db.close()
+
+
 async def _run_with_db_retry(operation):
     for attempt in range(DB_LOCK_RETRY_COUNT):
         try:
@@ -84,11 +88,35 @@ async def _reset_mismatched_user_vectors(db):
 
 async def init_db():
     async def operation():
-        async with await _connect() as db:
+        db = await _connect()
+        try:
             await db.executescript(CREATE_TABLES_SQL)
             await _ensure_items_column(db, "image_url", "ALTER TABLE items ADD COLUMN image_url TEXT")
             await _reset_mismatched_user_vectors(db)
             await db.commit()
+        finally:
+            await _close_db(db)
+
+    await _run_with_db_retry(operation)
+
+
+async def create_user(user_id: str):
+    async def operation():
+        db = await _connect()
+        try:
+            cur = await db.execute("SELECT user_id FROM users WHERE user_id=?", (user_id,))
+            row = await cur.fetchone()
+            if row is None:
+                zero_vec = json.dumps([0.0] * VECTOR_DIM)
+                await db.execute(
+                    "INSERT INTO users(user_id, profile_vector) VALUES(?, ?)",
+                    (user_id, zero_vec),
+                )
+                await db.commit()
+        finally:
+            await _close_db(db)
+
+    await _run_with_db_retry(operation)
 
     await _run_with_db_retry(operation)
 
@@ -110,7 +138,8 @@ async def create_user(user_id: str):
 
 
 async def get_user_vector(user_id: str):
-    async with await _connect() as db:
+    db = await _connect()
+    try:
         cur = await db.execute("SELECT profile_vector FROM users WHERE user_id=?", (user_id,))
         row = await cur.fetchone()
         if row is None:
@@ -119,23 +148,29 @@ async def get_user_vector(user_id: str):
         if len(vector) != VECTOR_DIM:
             return [0.0] * VECTOR_DIM
         return vector
+    finally:
+        await _close_db(db)
 
 
 async def update_user_vector(user_id: str, vector):
     async def operation():
-        async with await _connect() as db:
+        db = await _connect()
+        try:
             await db.execute(
                 "UPDATE users SET profile_vector=? WHERE user_id=?",
                 (json.dumps(vector), user_id),
             )
             await db.commit()
+        finally:
+            await _close_db(db)
 
     await _run_with_db_retry(operation)
 
 
 async def persist_user_feedback(user_id: str, item_events, profile_vector):
     async def operation():
-        async with await _connect() as db:
+        db = await _connect()
+        try:
             if item_events:
                 await db.executemany(
                     "INSERT INTO user_events(user_id, item_id, event_type) VALUES(?, ?, ?)",
@@ -146,13 +181,16 @@ async def persist_user_feedback(user_id: str, item_events, profile_vector):
                 (json.dumps(profile_vector), user_id),
             )
             await db.commit()
+        finally:
+            await _close_db(db)
 
     await _run_with_db_retry(operation)
 
 
 async def insert_item(item):
     async def operation():
-        async with await _connect() as db:
+        db = await _connect()
+        try:
             await db.execute(
                 """
                 INSERT OR REPLACE INTO items(
@@ -172,24 +210,30 @@ async def insert_item(item):
                 ),
             )
             await db.commit()
+        finally:
+            await _close_db(db)
 
     await _run_with_db_retry(operation)
 
 
 async def insert_event(user_id: str, item_id: int, event_type: str):
     async def operation():
-        async with await _connect() as db:
+        db = await _connect()
+        try:
             await db.execute(
                 "INSERT INTO user_events(user_id, item_id, event_type) VALUES(?, ?, ?)",
                 (user_id, item_id, event_type),
             )
             await db.commit()
+        finally:
+            await _close_db(db)
 
     await _run_with_db_retry(operation)
 
 
 async def get_latest_items(limit=20):
-    async with await _connect() as db:
+    db = await _connect()
+    try:
         cur = await db.execute(
             """
             SELECT item_id, title, description, modality, author_id, tags, image_url, created_at
@@ -200,6 +244,8 @@ async def get_latest_items(limit=20):
             (limit,),
         )
         rows = await cur.fetchall()
+    finally:
+        await _close_db(db)
 
     result = []
     for r in rows:
