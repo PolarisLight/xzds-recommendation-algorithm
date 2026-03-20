@@ -58,6 +58,8 @@ import app as app_module
 class BenchmarkResult:
     mode: str
     total_requests: int
+    success_requests: int
+    failed_requests: int
     concurrency: int
     total_time_sec: float
     throughput_rps: float
@@ -66,6 +68,7 @@ class BenchmarkResult:
     p95_latency_ms: float
     p99_latency_ms: float
     max_latency_ms: float
+    error_samples: List[str]
 
 
 class FakeRecommendationBackend:
@@ -165,9 +168,11 @@ async def execute_single_request(client: httpx.AsyncClient, user_id: str, item_i
     start = perf_counter()
     response = await client.post("/feed/refresh", json=payload)
     latency_ms = (perf_counter() - start) * 1000
-    if response.status_code != 200:
-        raise AssertionError(f"request failed: status={response.status_code}, body={response.text}")
-    return latency_ms, response.json()
+    body_text = response.text
+    body_json = None
+    if response.status_code == 200:
+        body_json = response.json()
+    return latency_ms, response.status_code, body_text, body_json
 
 
 @asynccontextmanager
@@ -228,6 +233,8 @@ async def run_benchmark(args) -> BenchmarkResult:
     item_ids = list(range(1, args.items + 1))
     event_types = ["view", "like", "favorite"]
     latencies = []
+    error_samples = []
+    failed_requests = 0
     semaphore = asyncio.Semaphore(args.concurrency)
 
     if args.mode == "fullstack":
@@ -240,6 +247,7 @@ async def run_benchmark(args) -> BenchmarkResult:
             await bootstrap_fullstack_data(client, user_ids, args.items)
 
         async def worker(request_index: int):
+            nonlocal failed_requests
             async with semaphore:
                 user_id = user_ids[request_index % len(user_ids)]
                 sampled_items = rng.sample(item_ids, k=args.events_per_request)
@@ -247,16 +255,35 @@ async def run_benchmark(args) -> BenchmarkResult:
                     event_types[(request_index + offset) % len(event_types)]
                     for offset in range(args.events_per_request)
                 ]
-                latency_ms, response = await execute_single_request(
-                    client,
-                    user_id,
-                    sampled_items,
-                    sampled_events,
-                    args.top_k,
-                )
-                if response.get("mode") not in {"personalized", "cold_start_latest"}:
-                    raise AssertionError(f"unexpected response mode: {response}")
-                latencies.append(latency_ms)
+
+                for attempt in range(args.retries + 1):
+                    latency_ms, status_code, body_text, body_json = await execute_single_request(
+                        client,
+                        user_id,
+                        sampled_items,
+                        sampled_events,
+                        args.top_k,
+                    )
+                    if status_code == 200 and body_json is not None:
+                        if body_json.get("mode") not in {"personalized", "cold_start_latest"}:
+                            message = f"unexpected response mode: {body_json}"
+                            if len(error_samples) < args.max_error_samples:
+                                error_samples.append(message)
+                            failed_requests += 1
+                            return
+                        latencies.append(latency_ms)
+                        return
+
+                    retryable = status_code in args.retry_statuses and attempt < args.retries
+                    if retryable:
+                        continue
+
+                    failed_requests += 1
+                    if len(error_samples) < args.max_error_samples:
+                        error_samples.append(
+                            f"status={status_code}, body={body_text[:200]!r}, user_id={user_id}, attempt={attempt + 1}"
+                        )
+                    return
 
         started_at = perf_counter()
         await asyncio.gather(*(worker(i) for i in range(args.requests)))
@@ -273,6 +300,8 @@ async def run_benchmark(args) -> BenchmarkResult:
     return BenchmarkResult(
         mode=args.mode,
         total_requests=args.requests,
+        success_requests=len(latencies),
+        failed_requests=failed_requests,
         concurrency=args.concurrency,
         total_time_sec=total_time,
         throughput_rps=args.requests / total_time if total_time else 0.0,
@@ -281,6 +310,7 @@ async def run_benchmark(args) -> BenchmarkResult:
         p95_latency_ms=percentile(0.95),
         p99_latency_ms=percentile(0.99),
         max_latency_ms=max(sorted_latencies) if sorted_latencies else 0.0,
+        error_samples=error_samples,
     )
 
 
@@ -289,7 +319,7 @@ def format_interpretation(result: BenchmarkResult) -> List[str]:
     return [
         "",
         f"--- 指标解释（{mode_name}） ---",
-        f"1) 这次一共压了 {result.total_requests} 个请求，并发度是 {result.concurrency}。",
+        f"1) 这次一共压了 {result.total_requests} 个请求，并发度是 {result.concurrency}。成功 {result.success_requests} 个，失败 {result.failed_requests} 个。",
         f"2) total_time_sec={result.total_time_sec:.3f}，表示这 {result.total_requests} 个请求总共用了 {result.total_time_sec:.3f} 秒跑完。",
         f"3) throughput_rps={result.throughput_rps:.2f}，表示系统当前大约每秒能处理 {result.throughput_rps:.2f} 个 /feed/refresh 请求。",
         f"4) avg_latency_ms={result.avg_latency_ms:.2f}，表示单个请求平均耗时约 {result.avg_latency_ms:.2f} 毫秒。",
@@ -301,7 +331,7 @@ def format_interpretation(result: BenchmarkResult) -> List[str]:
         "--- 模式说明 ---",
         "- isolated：隔离 Qdrant / SQLite / 向量模型，适合先看应用层吞吐和接口逻辑开销。",
         "- fullstack：连接真实服务，能够测到向量化、入库、检索等完整链路带来的实际延迟。",
-    ]
+    ] + (["", "--- 失败样例 ---"] + result.error_samples if result.error_samples else [])
 
 
 def parse_args():
@@ -318,6 +348,9 @@ def parse_args():
     parser.add_argument("--events-per-request", type=int, default=3, help="每个请求附带的行为数")
     parser.add_argument("--top-k", type=int, default=20, help="每次请求返回的推荐数量")
     parser.add_argument("--seed", type=int, default=20260320, help="随机种子，保证结果可复现")
+    parser.add_argument("--retries", type=int, default=2, help="单请求在可重试状态码下的最大重试次数")
+    parser.add_argument("--retry-statuses", type=int, nargs="+", default=[502, 503, 504], help="遇到这些状态码时进行重试")
+    parser.add_argument("--max-error-samples", type=int, default=5, help="最终输出中最多展示多少条失败样例")
     return parser.parse_args()
 
 
@@ -337,6 +370,8 @@ def main():
     print("=== Recommendation App Load Benchmark ===")
     print(f"mode               : {result.mode}")
     print(f"total_requests     : {result.total_requests}")
+    print(f"success_requests   : {result.success_requests}")
+    print(f"failed_requests    : {result.failed_requests}")
     print(f"concurrency        : {result.concurrency}")
     print(f"total_time_sec     : {result.total_time_sec:.3f}")
     print(f"throughput_rps     : {result.throughput_rps:.2f}")
