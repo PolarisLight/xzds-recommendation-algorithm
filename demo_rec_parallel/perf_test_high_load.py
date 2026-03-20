@@ -276,6 +276,7 @@ def is_success(suite_name: str, body_json: dict) -> bool:
     return True
 
 
+<<<<<<< codex/enhance-concurrency-performance-for-demo-hg2yed
 def get_suite_display_name(suite_name: str) -> str:
     return {
         "user": "用户创建",
@@ -330,6 +331,8 @@ def build_suite_analysis(result: BenchmarkResult) -> List[str]:
     return lines
 
 
+=======
+>>>>>>> main
 async def run_suite(client: httpx.AsyncClient, suite_name: str, args, rng: random.Random, user_ids, item_ids) -> BenchmarkResult:
     latencies = []
     error_samples = []
@@ -406,6 +409,7 @@ async def run_benchmark(args) -> List[BenchmarkResult]:
 
 def parse_args():
     parser = argparse.ArgumentParser(description="推荐系统高负载/高并发性能压测脚本")
+<<<<<<< codex/enhance-concurrency-performance-for-demo-hg2yed
     parser.add_argument("--mode", choices=["isolated", "fullstack"], default="fullstack", help="isolated 为隔离依赖压测，fullstack 为真实依赖全链路压测")
     parser.add_argument("--base-url", default="http://127.0.0.1:8000", help="fullstack 模式下真实服务地址")
     parser.add_argument("--bootstrap-data", action="store_true", help="fullstack 模式下先通过 /init/users 和 /init/items 初始化压测数据")
@@ -458,6 +462,31 @@ def print_result(result: BenchmarkResult):
     display_name = get_suite_display_name(result.suite_name)
     print(f"=== {display_name}压测结果 ===")
     print(f"压测场景           : {display_name}")
+=======
+    parser.add_argument("--mode", choices=["isolated", "fullstack"], default="fullstack")
+    parser.add_argument("--base-url", default="http://127.0.0.1:8000")
+    parser.add_argument("--bootstrap-data", action="store_true")
+    parser.add_argument("--timeout-sec", type=float, default=120.0)
+    parser.add_argument("--suites", nargs="+", choices=["user", "item", "refresh"], default=["user", "item", "refresh"], help="依次运行的压测场景")
+    parser.add_argument("--requests", type=int, default=300)
+    parser.add_argument("--concurrency", type=int, default=50)
+    parser.add_argument("--users", type=int, default=500)
+    parser.add_argument("--items", type=int, default=2000)
+    parser.add_argument("--candidate-pool-size", type=int, default=800)
+    parser.add_argument("--events-per-request", type=int, default=3)
+    parser.add_argument("--top-k", type=int, default=20)
+    parser.add_argument("--item-batch-size", type=int, default=64, help="bootstrap /init/items 时传入的 batch_size")
+    parser.add_argument("--seed", type=int, default=20260320)
+    parser.add_argument("--retries", type=int, default=2)
+    parser.add_argument("--retry-statuses", type=int, nargs="+", default=[502, 503, 504])
+    parser.add_argument("--max-error-samples", type=int, default=5)
+    return parser.parse_args()
+
+
+def print_result(result: BenchmarkResult):
+    print(f"=== {result.suite_name.upper()} Benchmark ===")
+    print(f"suite              : {result.suite_name}")
+>>>>>>> main
     print(f"total_requests     : {result.total_requests}")
     print(f"success_requests   : {result.success_requests}")
     print(f"failed_requests    : {result.failed_requests}")
@@ -469,8 +498,15 @@ def print_result(result: BenchmarkResult):
     print(f"p95_latency_ms     : {result.p95_latency_ms:.2f}")
     print(f"p99_latency_ms     : {result.p99_latency_ms:.2f}")
     print(f"max_latency_ms     : {result.max_latency_ms:.2f}")
+<<<<<<< codex/enhance-concurrency-performance-for-demo-hg2yed
     for line in build_suite_analysis(result):
         print(line)
+=======
+    if result.error_samples:
+        print("error_samples      :")
+        for sample in result.error_samples:
+            print(f"  - {sample}")
+>>>>>>> main
     print()
 
 
@@ -486,7 +522,16 @@ def main():
         raise ValueError("--events-per-request 不能大于 --items")
 
     results = asyncio.run(run_benchmark(args))
+<<<<<<< codex/enhance-concurrency-performance-for-demo-hg2yed
     print_overall_summary(args, results)
+=======
+    print("=== Recommendation App Load Benchmark Suite ===")
+    print(f"mode               : {args.mode}")
+    print(f"suites             : {', '.join(args.suites)}")
+    print(f"requests           : {args.requests}")
+    print(f"concurrency        : {args.concurrency}")
+    print()
+>>>>>>> main
     for result in results:
         print_result(result)
 
