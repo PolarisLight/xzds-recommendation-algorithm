@@ -503,7 +503,7 @@ python demo_rec/perf_test_high_load.py --mode isolated --requests 2000 --concurr
 python demo_rec/perf_test_high_load.py --mode fullstack --base-url http://127.0.0.1:8000 --bootstrap-data --requests 2000 --concurrency 300 --users 1000 --items 5000
 ```
 
-脚本会输出总耗时、吞吐量（RPS）以及平均 / P50 / P95 / P99 延迟，便于快速评估推荐刷新链路在高负载场景下的表现。若要评估真实线上延迟，应优先使用 `fullstack` 模式。
+脚本会输出总耗时、吞吐量（RPS）以及平均 / P50 / P95 / P99 延迟，便于快速评估推荐刷新链路在高负载场景下的表现。若要评估真实线上延迟，应优先使用 `fullstack` 模式。脚本对 `502/503/504` 默认会自动重试，并在最终结果中汇总失败请求数量与失败样例，而不是在第一次网关错误时直接退出。
 
 ### 7.1 实际压测结果
 
