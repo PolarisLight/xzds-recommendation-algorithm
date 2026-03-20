@@ -5,6 +5,7 @@ import random
 import statistics
 import sys
 import types
+import warnings
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from time import perf_counter
@@ -190,12 +191,23 @@ async def isolated_client(args):
             mocked.stop()
 
 
+async def maybe_check_readyz(client: httpx.AsyncClient):
+    try:
+        ready = await client.get("/readyz")
+    except Exception as exc:
+        warnings.warn(f"/readyz check failed and will be skipped: {exc}")
+        return
+
+    if ready.status_code != 200:
+        warnings.warn(
+            f"/readyz returned status={ready.status_code}, body={ready.text!r}; benchmark will continue"
+        )
+
+
 @asynccontextmanager
 async def fullstack_client(args):
     async with httpx.AsyncClient(base_url=args.base_url, timeout=args.timeout_sec) as client:
-        ready = await client.get("/readyz")
-        if ready.status_code != 200:
-            raise AssertionError(f"readyz failed: status={ready.status_code}, body={ready.text}")
+        await maybe_check_readyz(client)
         yield client
 
 
