@@ -1,16 +1,13 @@
-from io import BytesIO
 from typing import Optional
 
 import numpy as np
-import requests
-from PIL import Image
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams
 from sentence_transformers import SentenceTransformer
 
 from config import (
+    EMBEDDING_MODEL_NAME,
     EVENT_ALPHA,
-    MULTIMODAL_MODEL_NAME,
     QDRANT_COLLECTION,
     QDRANT_LOCAL_PATH,
     QDRANT_URL,
@@ -22,10 +19,10 @@ client = AsyncQdrantClient(**_client_config)
 _model: Optional[SentenceTransformer] = None
 
 
-def get_multimodal_model() -> SentenceTransformer:
+def get_text_embedding_model() -> SentenceTransformer:
     global _model
     if _model is None:
-        _model = SentenceTransformer(MULTIMODAL_MODEL_NAME)
+        _model = SentenceTransformer(EMBEDDING_MODEL_NAME)
     return _model
 
 
@@ -33,6 +30,16 @@ async def init_qdrant():
     collections = await client.get_collections()
     names = [c.name for c in collections.collections]
     if QDRANT_COLLECTION not in names:
+        await client.create_collection(
+            collection_name=QDRANT_COLLECTION,
+            vectors_config=VectorParams(size=VECTOR_DIM, distance=Distance.COSINE),
+        )
+        return
+
+    collection_info = await client.get_collection(collection_name=QDRANT_COLLECTION)
+    existing_size = collection_info.config.params.vectors.size
+    if existing_size != VECTOR_DIM:
+        await client.delete_collection(collection_name=QDRANT_COLLECTION)
         await client.create_collection(
             collection_name=QDRANT_COLLECTION,
             vectors_config=VectorParams(size=VECTOR_DIM, distance=Distance.COSINE),
@@ -52,29 +59,10 @@ def build_item_text(title: str, description: str, modality: str, tags=None):
     return f"[{modality}] {title} {description} {' '.join(tags)}"
 
 
-def embed_text_real(text: str):
-    model = get_multimodal_model()
+def embed_text(text: str):
+    model = get_text_embedding_model()
     emb = model.encode(text or "empty", normalize_embeddings=True)
     return emb.astype(np.float32).tolist()
-
-
-def embed_image_real(image_url: str):
-    model = get_multimodal_model()
-    resp = requests.get(image_url, timeout=10)
-    resp.raise_for_status()
-    img = Image.open(BytesIO(resp.content)).convert("RGB")
-    emb = model.encode(img, normalize_embeddings=True)
-    return emb.astype(np.float32).tolist()
-
-
-def fuse_multimodal_embedding(text_vector, image_vector=None, text_weight=0.7, image_weight=0.3):
-    if image_vector is None:
-        return normalize(text_vector)
-
-    text_arr = np.array(text_vector, dtype=np.float32)
-    image_arr = np.array(image_vector, dtype=np.float32)
-    fused = text_weight * text_arr + image_weight * image_arr
-    return normalize(fused)
 
 
 async def upsert_item_to_qdrant(item):
@@ -84,18 +72,7 @@ async def upsert_item_to_qdrant(item):
         item["modality"],
         item.get("tags", []),
     )
-
-    text_vector = embed_text_real(item_text)
-    image_url = item.get("image_url") or ""
-    image_vector = None
-
-    if image_url:
-        try:
-            image_vector = embed_image_real(image_url)
-        except Exception:
-            image_vector = None
-
-    vector = fuse_multimodal_embedding(text_vector, image_vector)
+    vector = embed_text(item_text)
 
     point = PointStruct(
         id=item["item_id"],
@@ -106,7 +83,7 @@ async def upsert_item_to_qdrant(item):
             "modality": item["modality"],
             "author_id": item.get("author_id", ""),
             "tags": item.get("tags", []),
-            "image_url": image_url,
+            "image_url": item.get("image_url", ""),
             "created_at": item.get("created_at", ""),
         },
     )

@@ -6,8 +6,11 @@ QDRANT_COLLECTION = "items_demo"
 
 SQLITE_PATH = "demo_rec.sqlite"
 
-# CLIP ViT-B/32 output vector dim
-VECTOR_DIM = 512
+# Small text-only embedding model for faster item vectorization.
+EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "all-MiniLM-L6-v2")
+
+# all-MiniLM-L6-v2 output vector dim
+VECTOR_DIM = 384
 
 # event weights
 EVENT_ALPHA = {
@@ -18,6 +21,3 @@ EVENT_ALPHA = {
 
 # cold start default result count
 DEFAULT_K = 20
-
-# multimodal embedding model (text + image)
-MULTIMODAL_MODEL_NAME = "clip-ViT-B-32"
