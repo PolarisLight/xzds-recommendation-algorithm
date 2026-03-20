@@ -1,7 +1,7 @@
 import json
 import sqlite3
 
-SQLITE_PATH = "demo_rec.sqlite"
+SQLITE_PATH = "xzds_rec_v2.sqlite"
 VECTOR_DIM = 384
 
 TEST_USER = {"user_id": "test_user_001"}

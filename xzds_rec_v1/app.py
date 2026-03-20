@@ -48,7 +48,7 @@ else:
         upsert_item_to_qdrant,
     )
 
-app = FastAPI(title="Demo Recommendation System")
+app = FastAPI(title="XZDS Recommendation System V1")
 
 
 class UserInitRequest(BaseModel):

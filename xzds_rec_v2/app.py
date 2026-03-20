@@ -56,7 +56,7 @@ else:
         upsert_items_to_qdrant_batch,
     )
 
-app = FastAPI(title="Demo Recommendation System Parallel")
+app = FastAPI(title="XZDS Recommendation System V2")
 user_refresh_locks = defaultdict(asyncio.Lock)
 ITEM_INIT_BATCH_SIZE = 64
 

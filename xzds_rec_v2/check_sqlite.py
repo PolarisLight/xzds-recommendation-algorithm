@@ -1,7 +1,7 @@
 import sqlite3
 import json
 
-conn = sqlite3.connect("demo_rec.sqlite")  # 按你的实际路径改
+conn = sqlite3.connect("xzds_rec_v2.sqlite")  # 按你的实际路径改
 cur = conn.cursor()
 
 print("=== tables ===")
