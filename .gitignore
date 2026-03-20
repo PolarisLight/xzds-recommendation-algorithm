@@ -7,3 +7,6 @@ __pycache__/
 
 # Local Qdrant data
 */qdrant_data/
+
+# Local model directories
+models/
