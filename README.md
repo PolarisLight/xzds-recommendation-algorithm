@@ -20,6 +20,11 @@
 4. **召回推荐**：用用户向量到 Qdrant 做相似检索，返回 Top-K 内容。
 5. **冷启动兜底**：当用户画像仍接近零向量时，返回按 `created_at` 倒序的最新内容。
 
+目前仓库包含两个可运行目录：
+
+- `demo_rec/`：当前可用的基础版本。
+- `demo_rec_parallel/`：新的并发实验版本，额外尝试了 refresh 串行化保护、SQLite WAL/busy_timeout 调优，以及 item 分批次向量化入库。
+
 默认配置（见 `demo_rec/config.py`）：
 
 - 向量维度：`384`

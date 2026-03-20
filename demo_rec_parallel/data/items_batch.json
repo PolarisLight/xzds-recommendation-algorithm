@@ -1,0 +1,404 @@
+{
+  "items": [
+    {
+      "item_id": 10001,
+      "title": "春天的校园水彩画",
+      "description": "学生使用水彩描绘春天校园景色，包含花草树木和教学楼。",
+      "modality": "image_text",
+      "author_id": "author_001",
+      "tags": ["水彩", "校园", "春天", "美术"],
+      "image_url": "https://example.com/images/10001.jpg",
+      "created_at": "2026-03-16 09:00:00"
+    },
+    {
+      "item_id": 10002,
+      "title": "钢琴练习曲《小星星》",
+      "description": "小学阶段钢琴独奏作品，旋律清晰，节奏稳定。",
+      "modality": "audio",
+      "author_id": "author_002",
+      "tags": ["钢琴", "音乐", "独奏", "练习"],
+      "image_url": "",
+      "created_at": "2026-03-16 09:05:00"
+    },
+    {
+      "item_id": 10003,
+      "title": "儿童舞蹈基本功展示",
+      "description": "学生进行舞蹈基本功训练展示，包括压腿、转身和节奏动作。",
+      "modality": "video",
+      "author_id": "author_003",
+      "tags": ["舞蹈", "基本功", "艺术技能"],
+      "image_url": "https://example.com/images/10003.jpg",
+      "created_at": "2026-03-16 09:10:00"
+    },
+    {
+      "item_id": 10004,
+      "title": "手工剪纸窗花作品",
+      "description": "传统民间艺术剪纸作品，图案为对称窗花，色彩鲜艳。",
+      "modality": "image_text",
+      "author_id": "author_004",
+      "tags": ["剪纸", "手工", "传统艺术"],
+      "image_url": "https://example.com/images/10004.jpg",
+      "created_at": "2026-03-16 09:15:00"
+    },
+    {
+      "item_id": 10005,
+      "title": "古诗朗诵《春晓》",
+      "description": "学生朗诵古诗《春晓》，配有轻音乐背景。",
+      "modality": "audio",
+      "author_id": "author_005",
+      "tags": ["朗诵", "古诗", "语文", "配乐"],
+      "image_url": "",
+      "created_at": "2026-03-16 09:20:00"
+    },
+    {
+      "item_id": 10006,
+      "title": "卡通人物马克笔绘画",
+      "description": "使用马克笔创作卡通人物形象，人物表情夸张，配色活泼。",
+      "modality": "image_text",
+      "author_id": "author_006",
+      "tags": ["马克笔", "卡通", "绘画"],
+      "image_url": "https://example.com/images/10006.jpg",
+      "created_at": "2026-03-16 09:25:00"
+    },
+    {
+      "item_id": 10007,
+      "title": "葫芦丝吹奏练习",
+      "description": "民族乐器葫芦丝演奏练习，旋律平稳，适合初学者。",
+      "modality": "audio",
+      "author_id": "author_007",
+      "tags": ["葫芦丝", "民族乐器", "音乐"],
+      "image_url": "",
+      "created_at": "2026-03-16 09:30:00"
+    },
+    {
+      "item_id": 10008,
+      "title": "校园合唱排练片段",
+      "description": "学生参加校园合唱团排练，内容为童声二部合唱。",
+      "modality": "video",
+      "author_id": "author_008",
+      "tags": ["合唱", "校园", "音乐", "排练"],
+      "image_url": "https://example.com/images/10008.jpg",
+      "created_at": "2026-03-16 09:35:00"
+    },
+    {
+      "item_id": 10009,
+      "title": "国画梅花作品赏析",
+      "description": "学生创作的国画梅花作品，笔墨简洁，构图疏朗。",
+      "modality": "image_text",
+      "author_id": "author_009",
+      "tags": ["国画", "梅花", "水墨"],
+      "image_url": "https://example.com/images/10009.jpg",
+      "created_at": "2026-03-16 09:40:00"
+    },
+    {
+      "item_id": 10010,
+      "title": "电子琴弹唱展示",
+      "description": "学生边弹电子琴边演唱儿童歌曲，表现自然。",
+      "modality": "video",
+      "author_id": "author_010",
+      "tags": ["电子琴", "弹唱", "音乐"],
+      "image_url": "https://example.com/images/10010.jpg",
+      "created_at": "2026-03-16 09:45:00"
+    },
+    {
+      "item_id": 10011,
+      "title": "环保主题创意海报",
+      "description": "以环保为主题设计创意海报，内容包含垃圾分类和绿色校园。",
+      "modality": "image_text",
+      "author_id": "author_011",
+      "tags": ["海报", "环保", "设计"],
+      "image_url": "https://example.com/images/10011.jpg",
+      "created_at": "2026-03-16 09:50:00"
+    },
+    {
+      "item_id": 10012,
+      "title": "小提琴独奏练习",
+      "description": "学生进行小提琴基础曲目练习，音准较好。",
+      "modality": "audio",
+      "author_id": "author_012",
+      "tags": ["小提琴", "独奏", "音乐"],
+      "image_url": "",
+      "created_at": "2026-03-16 09:55:00"
+    },
+    {
+      "item_id": 10013,
+      "title": "校园摄影作品：黄昏操场",
+      "description": "学生拍摄的校园摄影作品，主题为黄昏下的操场与跑道。",
+      "modality": "image_text",
+      "author_id": "author_013",
+      "tags": ["摄影", "校园", "黄昏"],
+      "image_url": "https://example.com/images/10013.jpg",
+      "created_at": "2026-03-16 10:00:00"
+    },
+    {
+      "item_id": 10014,
+      "title": "戏曲身段练习展示",
+      "description": "学生进行戏曲基础身段动作练习，动作规范。",
+      "modality": "video",
+      "author_id": "author_014",
+      "tags": ["戏曲", "身段", "传统艺术"],
+      "image_url": "https://example.com/images/10014.jpg",
+      "created_at": "2026-03-16 10:05:00"
+    },
+    {
+      "item_id": 10015,
+      "title": "吉他和弦弹奏练习",
+      "description": "学生进行吉他基础和弦转换练习，节奏均匀。",
+      "modality": "audio",
+      "author_id": "author_015",
+      "tags": ["吉他", "和弦", "音乐"],
+      "image_url": "",
+      "created_at": "2026-03-16 10:10:00"
+    },
+    {
+      "item_id": 10016,
+      "title": "黏土手工小动物",
+      "description": "学生使用超轻黏土制作小动物，形象可爱，色彩明快。",
+      "modality": "image_text",
+      "author_id": "author_016",
+      "tags": ["黏土", "手工", "小动物"],
+      "image_url": "https://example.com/images/10016.jpg",
+      "created_at": "2026-03-16 10:15:00"
+    },
+    {
+      "item_id": 10017,
+      "title": "课本剧表演片段",
+      "description": "学生合作演出课本剧，包含对白、动作和简单舞台调度。",
+      "modality": "video",
+      "author_id": "author_017",
+      "tags": ["课本剧", "表演", "校园活动"],
+      "image_url": "https://example.com/images/10017.jpg",
+      "created_at": "2026-03-16 10:20:00"
+    },
+    {
+      "item_id": 10018,
+      "title": "书法练习：楷书作品",
+      "description": "学生楷书练习作品，内容为古诗名句，笔画工整。",
+      "modality": "image_text",
+      "author_id": "author_018",
+      "tags": ["书法", "楷书", "传统文化"],
+      "image_url": "https://example.com/images/10018.jpg",
+      "created_at": "2026-03-16 10:25:00"
+    },
+    {
+      "item_id": 10019,
+      "title": "少儿声乐练习",
+      "description": "学生进行少儿声乐训练，演唱童谣，音色明亮。",
+      "modality": "audio",
+      "author_id": "author_019",
+      "tags": ["声乐", "童谣", "音乐"],
+      "image_url": "",
+      "created_at": "2026-03-16 10:30:00"
+    },
+    {
+      "item_id": 10020,
+      "title": "创意拼贴画作品",
+      "description": "学生使用彩纸和杂志图片完成创意拼贴画，主题是未来城市。",
+      "modality": "image_text",
+      "author_id": "author_020",
+      "tags": ["拼贴画", "创意", "未来城市"],
+      "image_url": "https://example.com/images/10020.jpg",
+      "created_at": "2026-03-16 10:35:00"
+    },
+    {
+      "item_id": 2001,
+      "title": "校园晨跑打卡",
+      "description": "记录今天早上 5 公里晨跑，配速 6'10\"。",
+      "modality": "text",
+      "author_id": "u1001",
+      "tags": ["校园", "运动", "晨跑"],
+      "image_url": "",
+      "created_at": "2026-03-16 08:05:00"
+    },
+    {
+      "item_id": 2002,
+      "title": "食堂新出的牛肉面",
+      "description": "今天中午试了新窗口，汤头挺香。",
+      "modality": "image_text",
+      "author_id": "u1002",
+      "tags": ["美食", "食堂", "日常"],
+      "image_url": "https://images.unsplash.com/photo-1547592180-85f173990554",
+      "created_at": "2026-03-16 12:10:00"
+    },
+    {
+      "item_id": 2003,
+      "title": "线代复习笔记",
+      "description": "把特征值和相似对角化做了整理，欢迎交流。",
+      "modality": "text",
+      "author_id": "u1003",
+      "tags": ["学习", "数学", "笔记"],
+      "image_url": "",
+      "created_at": "2026-03-16 13:20:00"
+    },
+    {
+      "item_id": 2004,
+      "title": "晚霞真的绝了",
+      "description": "图书馆门口拍到的晚霞，颜色很温柔。",
+      "modality": "image_text",
+      "author_id": "u1004",
+      "tags": ["摄影", "晚霞", "校园"],
+      "image_url": "https://images.unsplash.com/photo-1470770841072-f978cf4d019e",
+      "created_at": "2026-03-16 18:45:00"
+    },
+    {
+      "item_id": 2005,
+      "title": "Python 异步踩坑总结",
+      "description": "整理了 asyncio 常见问题和解决方式。",
+      "modality": "text",
+      "author_id": "u1005",
+      "tags": ["编程", "Python", "异步"],
+      "image_url": "",
+      "created_at": "2026-03-16 20:15:00"
+    },
+    {
+      "item_id": 2006,
+      "title": "操场夜跑音乐推荐",
+      "description": "分享几首适合夜跑的节奏歌单。",
+      "modality": "text",
+      "author_id": "u1001",
+      "tags": ["音乐", "夜跑", "推荐"],
+      "image_url": "",
+      "created_at": "2026-03-17 07:40:00"
+    },
+    {
+      "item_id": 2007,
+      "title": "寝室收纳改造前后",
+      "description": "花了 2 小时把桌面和衣柜都整理了。",
+      "modality": "image_text",
+      "author_id": "u1002",
+      "tags": ["生活", "收纳", "寝室"],
+      "image_url": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85",
+      "created_at": "2026-03-17 09:10:00"
+    },
+    {
+      "item_id": 2008,
+      "title": "校园流浪猫日记",
+      "description": "今天又在教学楼后面遇到小橘猫。",
+      "modality": "image_text",
+      "author_id": "u1003",
+      "tags": ["猫咪", "校园", "治愈"],
+      "image_url": "https://images.unsplash.com/photo-1511044568932-338cba0ad803",
+      "created_at": "2026-03-17 11:30:00"
+    },
+    {
+      "item_id": 2009,
+      "title": "考研英语长难句",
+      "description": "今天精读了 5 句经典长难句，附拆解思路。",
+      "modality": "text",
+      "author_id": "u1004",
+      "tags": ["英语", "考研", "学习"],
+      "image_url": "",
+      "created_at": "2026-03-17 14:05:00"
+    },
+    {
+      "item_id": 2010,
+      "title": "羽毛球双打小技巧",
+      "description": "后场高远球和网前封网的配合很关键。",
+      "modality": "text",
+      "author_id": "u1005",
+      "tags": ["运动", "羽毛球", "技巧"],
+      "image_url": "",
+      "created_at": "2026-03-17 17:20:00"
+    },
+    {
+      "item_id": 2011,
+      "title": "图书馆自习位攻略",
+      "description": "不同楼层安静程度和插座分布整理好了。",
+      "modality": "text",
+      "author_id": "u1001",
+      "tags": ["学习", "图书馆", "攻略"],
+      "image_url": "",
+      "created_at": "2026-03-18 08:25:00"
+    },
+    {
+      "item_id": 2012,
+      "title": "周末爬山vlog截图",
+      "description": "山顶风景很棒，空气特别好。",
+      "modality": "image_text",
+      "author_id": "u1002",
+      "tags": ["旅行", "爬山", "风景"],
+      "image_url": "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b",
+      "created_at": "2026-03-18 10:50:00"
+    },
+    {
+      "item_id": 2013,
+      "title": "前端组件化心得",
+      "description": "最近做项目对组件边界有了新理解。",
+      "modality": "text",
+      "author_id": "u1003",
+      "tags": ["前端", "工程化", "总结"],
+      "image_url": "",
+      "created_at": "2026-03-18 13:00:00"
+    },
+    {
+      "item_id": 2014,
+      "title": "奶茶店隐藏菜单",
+      "description": "推荐三分糖+少冰+椰果，口感不错。",
+      "modality": "image_text",
+      "author_id": "u1004",
+      "tags": ["奶茶", "探店", "美食"],
+      "image_url": "https://images.unsplash.com/photo-1558857563-b371033873b8",
+      "created_at": "2026-03-18 15:45:00"
+    },
+    {
+      "item_id": 2015,
+      "title": "数据库索引复盘",
+      "description": "B+ 树索引和联合索引命中规则笔记。",
+      "modality": "text",
+      "author_id": "u1005",
+      "tags": ["数据库", "后端", "学习"],
+      "image_url": "",
+      "created_at": "2026-03-18 19:30:00"
+    },
+    {
+      "item_id": 2016,
+      "title": "社团招新海报",
+      "description": "本周六下午社团招新，欢迎来玩。",
+      "modality": "image_text",
+      "author_id": "u1001",
+      "tags": ["社团", "活动", "招新"],
+      "image_url": "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40",
+      "created_at": "2026-03-19 09:15:00"
+    },
+    {
+      "item_id": 2017,
+      "title": "宿舍电费省钱技巧",
+      "description": "空调和热水器的使用时段很关键。",
+      "modality": "text",
+      "author_id": "u1002",
+      "tags": ["生活", "省钱", "宿舍"],
+      "image_url": "",
+      "created_at": "2026-03-19 11:05:00"
+    },
+    {
+      "item_id": 2018,
+      "title": "摄影构图练习",
+      "description": "用三分法和引导线拍了一组校园照片。",
+      "modality": "image_text",
+      "author_id": "u1003",
+      "tags": ["摄影", "构图", "练习"],
+      "image_url": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee",
+      "created_at": "2026-03-19 14:40:00"
+    },
+    {
+      "item_id": 2019,
+      "title": "概率论错题本",
+      "description": "把最近一周错题按知识点重新归类。",
+      "modality": "text",
+      "author_id": "u1004",
+      "tags": ["概率论", "错题", "复习"],
+      "image_url": "",
+      "created_at": "2026-03-19 17:25:00"
+    },
+    {
+      "item_id": 2020,
+      "title": "夜景延时摄影",
+      "description": "教学楼夜景延时，灯光变化很有氛围。",
+      "modality": "image_text",
+      "author_id": "u1005",
+      "tags": ["夜景", "摄影", "延时"],
+      "image_url": "https://images.unsplash.com/photo-1477959858617-67f85cf4f1df",
+      "created_at": "2026-03-19 21:50:00"
+    }
+  ]
+}
