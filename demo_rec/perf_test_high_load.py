@@ -219,6 +219,27 @@ async def run_benchmark(args) -> BenchmarkResult:
     )
 
 
+def format_interpretation(result: BenchmarkResult) -> List[str]:
+    return [
+        "",
+        "--- 指标解释 ---",
+        f"1) 这次一共压了 {result.total_requests} 个请求，并发度是 {result.concurrency}。",
+        f"2) total_time_sec={result.total_time_sec:.3f}，表示这 {result.total_requests} 个请求总共用了 {result.total_time_sec:.3f} 秒跑完。",
+        f"3) throughput_rps={result.throughput_rps:.2f}，表示系统当前大约每秒能处理 {result.throughput_rps:.2f} 个 /feed/refresh 请求。",
+        f"4) avg_latency_ms={result.avg_latency_ms:.2f}，表示单个请求平均耗时约 {result.avg_latency_ms:.2f} 毫秒。",
+        f"5) p50_latency_ms={result.p50_latency_ms:.2f}，表示 50% 的请求在 {result.p50_latency_ms:.2f} 毫秒内完成，也就是“典型请求耗时”。",
+        f"6) p95_latency_ms={result.p95_latency_ms:.2f}，表示 95% 的请求在 {result.p95_latency_ms:.2f} 毫秒内完成，只有 5% 更慢。",
+        f"7) p99_latency_ms={result.p99_latency_ms:.2f}，表示 99% 的请求在 {result.p99_latency_ms:.2f} 毫秒内完成，只有 1% 更慢。",
+        f"8) max_latency_ms={result.max_latency_ms:.2f}，表示这轮压测里最慢的那个请求用了 {result.max_latency_ms:.2f} 毫秒。",
+        "",
+        "--- 如何判断好不好 ---",
+        "- 如果你关心吞吐：重点看 throughput_rps，值越大越好。",
+        "- 如果你关心用户体验：重点看 p95 / p99，值越小越好。",
+        "- avg 很容易被少数慢请求掩盖，线上更建议看 p95 / p99。",
+        "- 是否达标，取决于你的目标。例如目标是 100 QPS 且 P95 < 50ms，那么当前结果需要同时对照这两个门槛判断。",
+    ]
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description="推荐系统高负载/高并发性能压测脚本（通过真实 FastAPI app 发起 HTTP 请求）")
     parser.add_argument("--requests", type=int, default=1000, help="总请求数")
@@ -255,6 +276,8 @@ def main():
     print(f"p95_latency_ms     : {result.p95_latency_ms:.2f}")
     print(f"p99_latency_ms     : {result.p99_latency_ms:.2f}")
     print(f"max_latency_ms     : {result.max_latency_ms:.2f}")
+    for line in format_interpretation(result):
+        print(line)
 
 
 if __name__ == "__main__":
