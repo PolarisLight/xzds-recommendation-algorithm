@@ -51,6 +51,10 @@ pip install -r requirements.txt
 docker run -p 6333:6333 qdrant/qdrant
 ```
 
+
+
+脚本会输出总耗时、吞吐量（RPS）以及平均 / P50 / P95 / P99 延迟，便于快速评估推荐刷新链路在高负载场景下的表现。
+
 ## 2.3 启动服务
 
 在仓库根目录执行：
