@@ -43,25 +43,41 @@ cd demo_rec
 pip install -r requirements.txt
 ```
 
-## 2.2 启动 Qdrant（示例）
+## 2.2 Qdrant 启动方式（二选一）
 
-如果本机尚未运行 Qdrant，可用 Docker 快速启动：
+项目现在默认会使用本地 `qdrant_data/` 目录作为嵌入式 Qdrant 存储，因此**不启动 Docker 也能直接跑起来**。如果你希望接外部 Qdrant 服务，再使用 Docker 或你自己的 Qdrant 实例即可。
+
+**方式 A：直接使用默认本地存储（推荐做开发调试）**
+
+```bash
+# 不需要额外启动 Qdrant
+```
+
+**方式 B：使用 Docker 启动独立 Qdrant 服务**
 
 ```bash
 docker run -p 6333:6333 qdrant/qdrant
 ```
 
+如果采用方式 B，请在启动应用前设置：
 
+```bash
+# Linux / macOS
+export QDRANT_URL=http://127.0.0.1:6333
 
-脚本会输出总耗时、吞吐量（RPS）以及平均 / P50 / P95 / P99 延迟，便于快速评估推荐刷新链路在高负载场景下的表现。
+# Windows PowerShell
+$env:QDRANT_URL="http://127.0.0.1:6333"
+```
 
 ## 2.3 启动服务
 
-在仓库根目录执行：
+在仓库根目录执行下面这条命令即可：
 
 ```bash
-uvicorn demo_rec.app:app --host 0.0.0.0 --port 8000 --reload --app-dir demo_rec
+uvicorn demo_rec.app:app --host 0.0.0.0 --port 8000 --reload
 ```
+
+> 如果你是直接运行单文件脚本（例如 `python demo_rec/perf_test_high_load.py`），项目也兼容。
 
 启动时会自动执行：
 

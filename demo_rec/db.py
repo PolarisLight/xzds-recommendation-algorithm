@@ -2,7 +2,10 @@ import json
 
 import aiosqlite
 
-from config import SQLITE_PATH, VECTOR_DIM
+if __package__ in (None, ""):
+    from config import SQLITE_PATH, VECTOR_DIM
+else:
+    from .config import SQLITE_PATH, VECTOR_DIM
 
 CREATE_TABLES_SQL = """
 CREATE TABLE IF NOT EXISTS users (

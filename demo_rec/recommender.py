@@ -5,14 +5,24 @@ from qdrant_client import AsyncQdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams
 from sentence_transformers import SentenceTransformer
 
-from config import (
-    EMBEDDING_MODEL_NAME,
-    EVENT_ALPHA,
-    QDRANT_COLLECTION,
-    QDRANT_LOCAL_PATH,
-    QDRANT_URL,
-    VECTOR_DIM,
-)
+if __package__ in (None, ""):
+    from config import (
+        EMBEDDING_MODEL_NAME,
+        EVENT_ALPHA,
+        QDRANT_COLLECTION,
+        QDRANT_LOCAL_PATH,
+        QDRANT_URL,
+        VECTOR_DIM,
+    )
+else:
+    from .config import (
+        EMBEDDING_MODEL_NAME,
+        EVENT_ALPHA,
+        QDRANT_COLLECTION,
+        QDRANT_LOCAL_PATH,
+        QDRANT_URL,
+        VECTOR_DIM,
+    )
 
 _client_config = {"url": QDRANT_URL} if QDRANT_URL else {"path": QDRANT_LOCAL_PATH}
 client = AsyncQdrantClient(**_client_config)
