@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
 
+ROOT_DIR = Path(__file__).resolve().parent.parent
+MODELS_DIR = ROOT_DIR / "models"
 BASE_DIR = Path(__file__).resolve().parent
 
 QDRANT_URL = os.getenv("QDRANT_URL", "").strip()
@@ -18,7 +20,7 @@ def _resolve_embedding_model_name() -> str:
             return str(configured_path.resolve())
         return configured
 
-    bundled_model_dir = BASE_DIR / "all-MiniLM-L6-v2"
+    bundled_model_dir = MODELS_DIR / "all-MiniLM-L6-v2"
     if bundled_model_dir.exists():
         return str(bundled_model_dir)
 
