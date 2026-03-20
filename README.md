@@ -249,9 +249,18 @@ curl -X POST 'http://127.0.0.1:8000/init/items' \
       }
     ]
   }'
+```
 
-  curl -X POST "http://localhost:8000/init/users" -H "Content-Type: application/json" --data-binary @xzds_rec_v1/data/users_batch.json
-curl -X POST "http://localhost:8000/init/items" -H "Content-Type: application/json" --data-binary @xzds_rec_v1/data/items_batch.json
+**使用 JSON 文件批量初始化**：
+
+```bash
+curl -X POST "http://127.0.0.1:8000/init/users" \
+  -H "Content-Type: application/json" \
+  --data-binary @xzds_rec_v1/data/users_batch.json
+
+curl -X POST "http://127.0.0.1:8000/init/items" \
+  -H "Content-Type: application/json" \
+  --data-binary @xzds_rec_v1/data/items_batch.json
 ```
 
 **响应示例**：

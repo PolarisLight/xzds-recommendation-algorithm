@@ -123,6 +123,16 @@ http://127.0.0.1:8000
 
 ### 4.3 `ItemInitRequest`
 
+> 除了直接在请求体中内联 JSON，项目测试里也提供了可直接复用的批量初始化 JSON 文件：
+>
+> - `xzds_rec_v1/data/users_batch.json`
+> - `xzds_rec_v1/data/items_batch.json`
+> - `xzds_rec_v2/data/users_batch.json`
+> - `xzds_rec_v2/data/items_batch.json`
+>
+> 可以通过 `curl --data-binary @文件路径` 直接发送，适合联调、压测准备和回归测试。
+
+
 #### V1 结构
 
 ```json
@@ -372,6 +382,45 @@ curl -X POST 'http://127.0.0.1:8000/init/items' \
   "batch_size": 64
 }
 ```
+
+### 使用 JSON 文件批量初始化
+
+除了直接把 JSON 内联到请求体，项目仓库也内置了测试用批量数据文件，可以直接发给接口：
+
+#### V1 示例
+
+```bash
+curl -X POST "http://127.0.0.1:8000/init/users" \
+  -H "Content-Type: application/json" \
+  --data-binary @xzds_rec_v1/data/users_batch.json
+
+curl -X POST "http://127.0.0.1:8000/init/items" \
+  -H "Content-Type: application/json" \
+  --data-binary @xzds_rec_v1/data/items_batch.json
+```
+
+#### V2 示例
+
+```bash
+curl -X POST "http://127.0.0.1:8000/init/users" \
+  -H "Content-Type: application/json" \
+  --data-binary @xzds_rec_v2/data/users_batch.json
+
+curl -X POST "http://127.0.0.1:8000/init/items" \
+  -H "Content-Type: application/json" \
+  --data-binary @xzds_rec_v2/data/items_batch.json
+```
+
+适用场景：
+
+- 本地联调时快速准备基础用户和内容数据。
+- 压测前做一次数据预热。
+- 回归测试时复用固定样例数据。
+
+注意：
+
+- 这些 JSON 文件本质上仍然符合 `UserInitRequest` / `ItemInitRequest` 结构。
+- 如果你启动的是 V2，也可以在自定义 JSON 中增加 `batch_size` 字段。
 
 ### 说明
 
