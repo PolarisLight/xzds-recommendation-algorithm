@@ -17,6 +17,13 @@ import httpx
 
 from config import EVENT_ALPHA, VECTOR_DIM
 
+import os
+
+print("HTTP_PROXY =", os.getenv("HTTP_PROXY"))
+print("HTTPS_PROXY =", os.getenv("HTTPS_PROXY"))
+print("ALL_PROXY =", os.getenv("ALL_PROXY"))
+print("NO_PROXY =", os.getenv("NO_PROXY"))
+
 
 def normalize(vector):
     norm = math.sqrt(sum(value * value for value in vector)) or 1.0
@@ -206,7 +213,11 @@ async def maybe_check_readyz(client: httpx.AsyncClient):
 
 @asynccontextmanager
 async def fullstack_client(args):
-    async with httpx.AsyncClient(base_url=args.base_url, timeout=args.timeout_sec) as client:
+    async with httpx.AsyncClient(
+        base_url=args.base_url,
+        timeout=args.timeout_sec,
+        trust_env=False,
+    ) as client:
         await maybe_check_readyz(client)
         yield client
 
@@ -295,7 +306,7 @@ def format_interpretation(result: BenchmarkResult) -> List[str]:
 
 def parse_args():
     parser = argparse.ArgumentParser(description="推荐系统高负载/高并发性能压测脚本")
-    parser.add_argument("--mode", choices=["isolated", "fullstack"], default="isolated", help="isolated 为隔离依赖压测，fullstack 为真实依赖全链路压测")
+    parser.add_argument("--mode", choices=["isolated", "fullstack"], default="fullstack", help="isolated 为隔离依赖压测，fullstack 为真实依赖全链路压测")
     parser.add_argument("--base-url", default="http://127.0.0.1:8000", help="fullstack 模式下真实服务地址")
     parser.add_argument("--bootstrap-data", action="store_true", help="fullstack 模式下先通过 /init/users 和 /init/items 初始化压测数据")
     parser.add_argument("--timeout-sec", type=float, default=120.0, help="fullstack 模式下单请求超时秒数")

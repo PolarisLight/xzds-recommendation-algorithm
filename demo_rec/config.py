@@ -20,4 +20,4 @@ EVENT_ALPHA = {
 DEFAULT_K = 20
 
 # multimodal embedding model (text + image)
-MULTIMODAL_MODEL_NAME = "sentence-transformers/clip-ViT-B-32"
+MULTIMODAL_MODEL_NAME = "clip-ViT-B-32"
