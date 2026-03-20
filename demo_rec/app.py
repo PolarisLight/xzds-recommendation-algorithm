@@ -1,18 +1,18 @@
+from pathlib import Path
 from typing import Any, List, Optional
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 if __package__ in (None, ""):
-    from config import DEFAULT_K, SQLITE_PATH
+    from config import DEFAULT_K, EMBEDDING_LOCAL_FILES_ONLY, EMBEDDING_MODEL_NAME, SQLITE_PATH
     from db import (
         create_user,
         get_latest_items,
         get_user_vector,
         init_db,
-        insert_event,
         insert_item,
-        update_user_vector,
+        persist_user_feedback,
     )
     from recommender import (
         get_item_vector,
@@ -26,15 +26,14 @@ if __package__ in (None, ""):
         upsert_item_to_qdrant,
     )
 else:
-    from .config import DEFAULT_K, SQLITE_PATH
+    from .config import DEFAULT_K, EMBEDDING_LOCAL_FILES_ONLY, EMBEDDING_MODEL_NAME, SQLITE_PATH
     from .db import (
         create_user,
         get_latest_items,
         get_user_vector,
         init_db,
-        insert_event,
         insert_item,
-        update_user_vector,
+        persist_user_feedback,
     )
     from .recommender import (
         get_item_vector,
@@ -90,6 +89,9 @@ class QdrantScrollRequest(BaseModel):
 @app.on_event("startup")
 async def startup():
     print("APP SQLITE_PATH =", SQLITE_PATH)
+    print("APP EMBEDDING_MODEL_NAME =", EMBEDDING_MODEL_NAME)
+    print("APP EMBEDDING_MODEL_IS_LOCAL =", Path(EMBEDDING_MODEL_NAME).exists())
+    print("APP EMBEDDING_LOCAL_FILES_ONLY =", EMBEDDING_LOCAL_FILES_ONLY)
     await init_db()
     await init_qdrant()
 
@@ -139,13 +141,14 @@ async def refresh_feed(req: EventRequest):
         )
 
     updated_vec = user_vec
+    consumed_events = []
     for item_id, event_type in zip(req.recent_item_ids, req.recent_events):
         item_vec = await get_item_vector(item_id)
         if item_vec is not None:
             updated_vec = update_profile_vector(updated_vec, item_vec, event_type)
-            await insert_event(req.user_id, item_id, event_type)
+            consumed_events.append((item_id, event_type))
 
-    await update_user_vector(req.user_id, updated_vec)
+    await persist_user_feedback(req.user_id, consumed_events, updated_vec)
 
     if sum(abs(x) for x in updated_vec) < 1e-8:
         latest_items = await get_latest_items(limit=req.k or DEFAULT_K)

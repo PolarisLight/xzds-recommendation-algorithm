@@ -95,6 +95,10 @@ uvicorn demo_rec.app:app --host 0.0.0.0 --port 8000 --reload
 
 默认优先按下面的顺序找模型：1）环境变量 `EMBEDDING_MODEL_NAME` 指定的路径或模型名；2）项目内的 `demo_rec/all-MiniLM-L6-v2` 本地目录；3）最后才回退到 Hugging Face 上的 `sentence-transformers/all-MiniLM-L6-v2`。如果解析到的是本地目录，代码会自动开启 `local_files_only=True`，不再请求 Hugging Face。若你想强制离线，也可以额外设置 `EMBEDDING_LOCAL_FILES_ONLY=1`。
 
+应用启动时还会额外打印 `APP EMBEDDING_MODEL_NAME`、`APP EMBEDDING_MODEL_IS_LOCAL` 和 `APP EMBEDDING_LOCAL_FILES_ONLY`，便于确认实际加载的是哪个模型目录。
+
+高压全链路压测时，如果想把用户初始化、内容初始化、刷新请求拆开看，可以使用 `demo_rec/perf_test_high_load.py` 新增的 `--bootstrap-item-batch-size` 参数，把 item 初始化拆成多个批次提交；最终输出也会单独展示 user bootstrap、item bootstrap 和 refresh 请求的耗时。
+
 ---
 
 ## 3. 数据模型

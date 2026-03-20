@@ -68,7 +68,11 @@ class BenchmarkResult:
     p95_latency_ms: float
     p99_latency_ms: float
     max_latency_ms: float
-    error_samples: List[str]
+    bootstrap_user_time_sec: float = 0.0
+    bootstrap_item_time_sec: float = 0.0
+    bootstrap_total_time_sec: float = 0.0
+    bootstrap_item_batch_size: int = 0
+    error_samples: List[str] = None
 
 
 class FakeRecommendationBackend:
@@ -106,11 +110,8 @@ class FakeRecommendationBackend:
     async def get_item_vector(self, item_id: int):
         return self.item_vectors.get(item_id)
 
-    async def insert_event(self, user_id: str, item_id: int, event_type: str):
-        return None
-
-    async def update_user_vector(self, user_id: str, vector):
-        self.user_vectors[user_id] = vector
+    async def persist_user_feedback(self, user_id: str, item_events, profile_vector):
+        self.user_vectors[user_id] = profile_vector
 
     async def get_latest_items(self, limit: int = 20):
         latest_ids = sorted(self.items.keys(), reverse=True)[:limit]
@@ -148,14 +149,32 @@ def build_bootstrap_items(item_count: int) -> List[dict]:
     return items
 
 
-async def bootstrap_fullstack_data(client: httpx.AsyncClient, user_ids: List[str], item_count: int):
+async def bootstrap_fullstack_data(client: httpx.AsyncClient, user_ids: List[str], item_count: int, item_batch_size: int):
+    started_at = perf_counter()
+    users_started_at = perf_counter()
     users_resp = await client.post("/init/users", json={"users": user_ids})
+    user_time_sec = perf_counter() - users_started_at
     if users_resp.status_code != 200:
         raise AssertionError(f"bootstrap users failed: status={users_resp.status_code}, body={users_resp.text}")
 
-    items_resp = await client.post("/init/items", json={"items": build_bootstrap_items(item_count)})
-    if items_resp.status_code != 200:
-        raise AssertionError(f"bootstrap items failed: status={items_resp.status_code}, body={items_resp.text}")
+    items = build_bootstrap_items(item_count)
+    effective_batch_size = item_batch_size if item_batch_size > 0 else max(1, item_count)
+    items_started_at = perf_counter()
+    for start in range(0, len(items), effective_batch_size):
+        batch = items[start : start + effective_batch_size]
+        items_resp = await client.post("/init/items", json={"items": batch})
+        if items_resp.status_code != 200:
+            raise AssertionError(
+                f"bootstrap items failed: status={items_resp.status_code}, body={items_resp.text}, batch_start={start}"
+            )
+    item_time_sec = perf_counter() - items_started_at
+
+    return {
+        "user_time_sec": user_time_sec,
+        "item_time_sec": item_time_sec,
+        "total_time_sec": perf_counter() - started_at,
+        "item_batch_size": effective_batch_size,
+    }
 
 
 async def execute_single_request(client: httpx.AsyncClient, user_id: str, item_ids: List[int], events: List[str], k: int):
@@ -186,8 +205,7 @@ async def isolated_client(args):
     patches = [
         patch.object(app_module, "get_user_vector", backend.get_user_vector),
         patch.object(app_module, "get_item_vector", backend.get_item_vector),
-        patch.object(app_module, "insert_event", backend.insert_event),
-        patch.object(app_module, "update_user_vector", backend.update_user_vector),
+        patch.object(app_module, "persist_user_feedback", backend.persist_user_feedback),
         patch.object(app_module, "search_similar_items", backend.search_similar_items),
         patch.object(app_module, "get_latest_items", backend.get_latest_items),
     ]
@@ -242,9 +260,21 @@ async def run_benchmark(args) -> BenchmarkResult:
     else:
         client_factory = isolated_client
 
+    bootstrap_stats = {
+        "user_time_sec": 0.0,
+        "item_time_sec": 0.0,
+        "total_time_sec": 0.0,
+        "item_batch_size": 0,
+    }
+
     async with client_factory(args) as client:
         if args.mode == "fullstack" and args.bootstrap_data:
-            await bootstrap_fullstack_data(client, user_ids, args.items)
+            bootstrap_stats = await bootstrap_fullstack_data(
+                client,
+                user_ids,
+                args.items,
+                args.bootstrap_item_batch_size,
+            )
 
         async def worker(request_index: int):
             nonlocal failed_requests
@@ -310,6 +340,10 @@ async def run_benchmark(args) -> BenchmarkResult:
         p95_latency_ms=percentile(0.95),
         p99_latency_ms=percentile(0.99),
         max_latency_ms=max(sorted_latencies) if sorted_latencies else 0.0,
+        bootstrap_user_time_sec=bootstrap_stats["user_time_sec"],
+        bootstrap_item_time_sec=bootstrap_stats["item_time_sec"],
+        bootstrap_total_time_sec=bootstrap_stats["total_time_sec"],
+        bootstrap_item_batch_size=bootstrap_stats["item_batch_size"],
         error_samples=error_samples,
     )
 
@@ -322,11 +356,11 @@ def format_interpretation(result: BenchmarkResult) -> List[str]:
         f"1) 这次一共压了 {result.total_requests} 个请求，并发度是 {result.concurrency}。成功 {result.success_requests} 个，失败 {result.failed_requests} 个。",
         f"2) total_time_sec={result.total_time_sec:.3f}，表示这 {result.total_requests} 个请求总共用了 {result.total_time_sec:.3f} 秒跑完。",
         f"3) throughput_rps={result.throughput_rps:.2f}，表示系统当前大约每秒能处理 {result.throughput_rps:.2f} 个 /feed/refresh 请求。",
-        f"4) avg_latency_ms={result.avg_latency_ms:.2f}，表示单个请求平均耗时约 {result.avg_latency_ms:.2f} 毫秒。",
-        f"5) p50_latency_ms={result.p50_latency_ms:.2f}，表示 50% 的请求在 {result.p50_latency_ms:.2f} 毫秒内完成，也就是“典型请求耗时”。",
-        f"6) p95_latency_ms={result.p95_latency_ms:.2f}，表示 95% 的请求在 {result.p95_latency_ms:.2f} 毫秒内完成，只有 5% 更慢。",
-        f"7) p99_latency_ms={result.p99_latency_ms:.2f}，表示 99% 的请求在 {result.p99_latency_ms:.2f} 毫秒内完成，只有 1% 更慢。",
-        f"8) max_latency_ms={result.max_latency_ms:.2f}，表示这轮压测里最慢的那个请求用了 {result.max_latency_ms:.2f} 毫秒。",
+        f"4) avg_latency_ms={result.avg_latency_ms:.2f}，表示单个刷新请求平均耗时约 {result.avg_latency_ms:.2f} 毫秒。",
+        f"5) p50_latency_ms={result.p50_latency_ms:.2f}，表示 50% 的刷新请求在 {result.p50_latency_ms:.2f} 毫秒内完成，也就是“典型请求耗时”。",
+        f"6) p95_latency_ms={result.p95_latency_ms:.2f}，表示 95% 的刷新请求在 {result.p95_latency_ms:.2f} 毫秒内完成，只有 5% 更慢。",
+        f"7) p99_latency_ms={result.p99_latency_ms:.2f}，表示 99% 的刷新请求在 {result.p99_latency_ms:.2f} 毫秒内完成，只有 1% 更慢。",
+        f"8) max_latency_ms={result.max_latency_ms:.2f}，表示这轮压测里最慢的刷新请求用了 {result.max_latency_ms:.2f} 毫秒。",
         "",
         "--- 模式说明 ---",
         "- isolated：隔离 Qdrant / SQLite / 向量模型，适合先看应用层吞吐和接口逻辑开销。",
@@ -340,6 +374,7 @@ def parse_args():
     parser.add_argument("--base-url", default="http://127.0.0.1:8000", help="fullstack 模式下真实服务地址")
     parser.add_argument("--bootstrap-data", action="store_true", help="fullstack 模式下先通过 /init/users 和 /init/items 初始化压测数据")
     parser.add_argument("--timeout-sec", type=float, default=120.0, help="fullstack 模式下单请求超时秒数")
+    parser.add_argument("--bootstrap-item-batch-size", type=int, default=0, help="fullstack 模式下 /init/items 的批次大小，0 表示一次性提交全部 item")
     parser.add_argument("--requests", type=int, default=1000, help="总请求数")
     parser.add_argument("--concurrency", type=int, default=200, help="并发协程数")
     parser.add_argument("--users", type=int, default=500, help="参与压测的用户数")
@@ -364,6 +399,8 @@ def main():
         raise ValueError("--requests 必须大于 0")
     if args.events_per_request > args.items:
         raise ValueError("--events-per-request 不能大于 --items")
+    if args.bootstrap_item_batch_size < 0:
+        raise ValueError("--bootstrap-item-batch-size 不能小于 0")
 
     result = asyncio.run(run_benchmark(args))
 
@@ -380,6 +417,11 @@ def main():
     print(f"p95_latency_ms     : {result.p95_latency_ms:.2f}")
     print(f"p99_latency_ms     : {result.p99_latency_ms:.2f}")
     print(f"max_latency_ms     : {result.max_latency_ms:.2f}")
+    if args.mode == "fullstack" and args.bootstrap_data:
+        print(f"bootstrap_user_time_sec : {result.bootstrap_user_time_sec:.3f}")
+        print(f"bootstrap_item_time_sec : {result.bootstrap_item_time_sec:.3f}")
+        print(f"bootstrap_total_time_sec: {result.bootstrap_total_time_sec:.3f}")
+        print(f"bootstrap_item_batch_size: {result.bootstrap_item_batch_size}")
     for line in format_interpretation(result):
         print(line)
 
