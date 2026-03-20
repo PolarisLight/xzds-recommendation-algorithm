@@ -22,14 +22,14 @@
 
 目前仓库包含两个可运行目录：
 
-- `demo_rec/`：当前可用的基础版本。
-- `demo_rec_parallel/`：新的并发实验版本，额外尝试了 refresh 串行化保护、SQLite WAL/busy_timeout 调优，以及 item 分批次向量化入库。
+- `xzds_rec_v1/`：已跑通的正式版本 V1。
+- `xzds_rec_v2/`：正在测试中的正式版本 V2，并行化方向上额外尝试了 refresh 串行化保护、SQLite WAL/busy_timeout 调优，以及 item 分批次向量化入库。
 
-默认配置（见 `demo_rec/config.py`）：
+当前默认启动配置以正式版 V1 为准（见 `xzds_rec_v1/config.py`）：
 
 - 向量维度：`384`
 - Qdrant 地址：`http://localhost:6333`
-- 集合名：`items_demo`
+- 集合名：`items_xzds_rec_v1`
 - 默认推荐数量：`20`
 
 ---
@@ -44,7 +44,7 @@
 安装依赖：
 
 ```bash
-cd demo_rec
+cd xzds_rec_v1
 pip install -r requirements.txt
 ```
 
@@ -79,10 +79,10 @@ $env:QDRANT_URL="http://127.0.0.1:6333"
 在仓库根目录执行下面这条命令即可：
 
 ```bash
-uvicorn demo_rec.app:app --host 0.0.0.0 --port 8000 --reload
+uvicorn xzds_rec_v1.app:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-> 如果你是直接运行单文件脚本（例如 `python demo_rec/perf_test_high_load.py`），项目也兼容。
+> 如果你是直接运行单文件脚本（例如 `python xzds_rec_v1/perf_test_high_load.py`），项目也兼容。
 
 启动时会自动执行：
 
@@ -98,7 +98,7 @@ uvicorn demo_rec.app:app --host 0.0.0.0 --port 8000 --reload
 
 ## 2.5 安装轻量文本向量模型
 
-默认优先按下面的顺序找模型：1）环境变量 `EMBEDDING_MODEL_NAME` 指定的路径或模型名；2）项目内的 `demo_rec/all-MiniLM-L6-v2` 本地目录；3）最后才回退到 Hugging Face 上的 `sentence-transformers/all-MiniLM-L6-v2`。如果解析到的是本地目录，代码会自动开启 `local_files_only=True`，不再请求 Hugging Face。若你想强制离线，也可以额外设置 `EMBEDDING_LOCAL_FILES_ONLY=1`。
+默认优先按下面的顺序找模型：1）环境变量 `EMBEDDING_MODEL_NAME` 指定的路径或模型名；2）项目内的 `xzds_rec_v1/all-MiniLM-L6-v2` 本地目录；3）最后才回退到 Hugging Face 上的 `sentence-transformers/all-MiniLM-L6-v2`。如果解析到的是本地目录，代码会自动开启 `local_files_only=True`，不再请求 Hugging Face。若你想强制离线，也可以额外设置 `EMBEDDING_LOCAL_FILES_ONLY=1`。
 
 ---
 
@@ -235,8 +235,8 @@ curl -X POST 'http://127.0.0.1:8000/init/items' \
     ]
   }'
 
-  curl -X POST "http://localhost:8000/init/users" -H "Content-Type: application/json" --data-binary @demo_rec/data/users_batch.json
-curl -X POST "http://localhost:8000/init/items" -H "Content-Type: application/json" --data-binary @demo_rec/data/items_batch.json
+  curl -X POST "http://localhost:8000/init/users" -H "Content-Type: application/json" --data-binary @xzds_rec_v1/data/users_batch.json
+curl -X POST "http://localhost:8000/init/items" -H "Content-Type: application/json" --data-binary @xzds_rec_v1/data/items_batch.json
 ```
 
 **响应示例**：
@@ -422,7 +422,7 @@ curl "http://127.0.0.1:8000/qdrant/collections"
 
 ```json
 {
-  "collections": ["items_demo"]
+  "collections": ["items_xzds_rec_v1"]
 }
 ```
 
@@ -435,7 +435,7 @@ curl "http://127.0.0.1:8000/qdrant/collections"
 **示例**：
 
 ```bash
-curl "http://127.0.0.1:8000/qdrant/collections/items_demo"
+curl "http://127.0.0.1:8000/qdrant/collections/items_xzds_rec_v1"
 ```
 
 ---
@@ -449,7 +449,7 @@ curl "http://127.0.0.1:8000/qdrant/collections/items_demo"
 **示例**：
 
 ```bash
-curl -X POST "http://127.0.0.1:8000/qdrant/collections/items_demo/points/scroll" -H "Content-Type: application/json" -d "{\"limit\":5,\"with_payload\":true,\"with_vector\":false}"
+curl -X POST "http://127.0.0.1:8000/qdrant/collections/items_xzds_rec_v1/points/scroll" -H "Content-Type: application/json" -d "{\"limit\":5,\"with_payload\":true,\"with_vector\":false}"
 ```
 
 **响应示例**：
@@ -479,10 +479,10 @@ curl -X POST "http://127.0.0.1:8000/qdrant/collections/items_demo/points/scroll"
 
 ## 5. 快速初始化数据（可选）
 
-项目附带脚本：`demo_rec/test_data_ingest.py`，可用于验证 SQLite 入库。
+项目附带脚本：`xzds_rec_v1/test_data_ingest.py`，可用于验证 SQLite 入库。
 
 ```bash
-python demo_rec/test_data_ingest.py
+python xzds_rec_v1/test_data_ingest.py
 ```
 
 输出出现 `[PASS]` 表示用户与内容均写入成功。
@@ -497,7 +497,7 @@ python demo_rec/test_data_ingest.py
   - `view`: 0.08
   - `like`: 0.15
   - `favorite`: 0.25
-- 若要调整推荐数量、Qdrant 地址、集合名、模型名，可修改 `demo_rec/config.py`。
+- 若要调整推荐数量、Qdrant 地址、集合名、模型名，可修改 `xzds_rec_v1/config.py`。
 
 ---
 
@@ -505,7 +505,7 @@ python demo_rec/test_data_ingest.py
 
 ### 7.0 压测脚本说明
 
-仓库额外提供了一个纯 Python 压测脚本 `demo_rec/perf_test_high_load.py`，支持两种模式：
+仓库额外提供了一个纯 Python 压测脚本 `xzds_rec_v1/perf_test_high_load.py`，支持两种模式：
 
 - `--mode isolated`：隔离 Qdrant、SQLite、向量模型，只测试 FastAPI 应用层和推荐接口逻辑，适合快速定位代码层瓶颈。
 - `--mode fullstack`：连接真实运行中的推荐服务，能够把 **向量化、入库、Qdrant 检索** 等真实依赖全部纳入延迟统计，更接近线上真实表现。
@@ -514,10 +514,10 @@ python demo_rec/test_data_ingest.py
 
 ```bash
 # 快速看应用层开销
-python demo_rec/perf_test_high_load.py --mode isolated --requests 2000 --concurrency 300 --users 1000 --items 5000
+python xzds_rec_v1/perf_test_high_load.py --mode isolated --requests 2000 --concurrency 300 --users 1000 --items 5000
 
 # 测真实全链路延迟（需要先启动服务，并准备好 SQLite / Qdrant / 向量模型）
-python demo_rec/perf_test_high_load.py --mode fullstack --base-url http://127.0.0.1:8000 --bootstrap-data --requests 200 --concurrency 5 --users 100 --items 100
+python xzds_rec_v1/perf_test_high_load.py --mode fullstack --base-url http://127.0.0.1:8000 --bootstrap-data --requests 200 --concurrency 5 --users 100 --items 100
 ```
 
 脚本会输出总耗时、吞吐量（RPS）以及平均 / P50 / P95 / P99 延迟，便于快速评估推荐刷新链路在高负载场景下的表现。若要评估真实线上延迟，应优先使用 `fullstack` 模式。脚本对 `502/503/504` 默认会自动重试，并在最终结果中汇总失败请求数量与失败样例，而不是在第一次网关错误时直接退出。

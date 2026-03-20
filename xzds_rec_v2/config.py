@@ -5,9 +5,9 @@ BASE_DIR = Path(__file__).resolve().parent
 
 QDRANT_URL = os.getenv("QDRANT_URL", "").strip()
 QDRANT_LOCAL_PATH = os.getenv("QDRANT_LOCAL_PATH", str(BASE_DIR / "qdrant_data"))
-QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "items_demo_parallel")
+QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "items_xzds_rec_v2")
 
-SQLITE_PATH = os.getenv("SQLITE_PATH", str(BASE_DIR / "demo_rec.sqlite"))
+SQLITE_PATH = os.getenv("SQLITE_PATH", str(BASE_DIR / "xzds_rec_v2.sqlite"))
 
 
 def _resolve_embedding_model_name() -> str:

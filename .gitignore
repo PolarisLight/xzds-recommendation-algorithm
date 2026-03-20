@@ -1,10 +1,9 @@
-# 忽略本地 SQLite 数据库
-demo_rec.sqlite
+# Python cache artifacts
+__pycache__/
+*.pyc
 
-# 忽略本地 SQLite 数据库
-demo_rec/demo_rec.sqlite
+# Local SQLite databases
+*.sqlite
 
-# 忽略本地 Qdrant 数据存储
-demo_rec/qdrant_data/
-
-demo_rec/__pycache__/
+# Local Qdrant data
+*/qdrant_data/
