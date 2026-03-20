@@ -93,7 +93,7 @@ uvicorn demo_rec.app:app --host 0.0.0.0 --port 8000 --reload
 
 ## 2.5 安装轻量文本向量模型
 
-默认使用 `sentence-transformers/all-MiniLM-L6-v2`，只做纯文本向量化，不再请求图片内容。若本地无法联网拉取模型，可提前下载到 Hugging Face 缓存目录，或通过环境变量 `EMBEDDING_MODEL_NAME` 切换到其他兼容的纯文本模型。
+默认优先按下面的顺序找模型：1）环境变量 `EMBEDDING_MODEL_NAME` 指定的路径或模型名；2）项目内的 `demo_rec/all-MiniLM-L6-v2` 本地目录；3）最后才回退到 Hugging Face 上的 `sentence-transformers/all-MiniLM-L6-v2`。如果解析到的是本地目录，代码会自动开启 `local_files_only=True`，不再请求 Hugging Face。若你想强制离线，也可以额外设置 `EMBEDDING_LOCAL_FILES_ONLY=1`。
 
 ---
 

@@ -7,6 +7,7 @@ from sentence_transformers import SentenceTransformer
 
 if __package__ in (None, ""):
     from config import (
+        EMBEDDING_LOCAL_FILES_ONLY,
         EMBEDDING_MODEL_NAME,
         EVENT_ALPHA,
         QDRANT_COLLECTION,
@@ -16,6 +17,7 @@ if __package__ in (None, ""):
     )
 else:
     from .config import (
+        EMBEDDING_LOCAL_FILES_ONLY,
         EMBEDDING_MODEL_NAME,
         EVENT_ALPHA,
         QDRANT_COLLECTION,
@@ -32,7 +34,7 @@ _model: Optional[SentenceTransformer] = None
 def get_text_embedding_model() -> SentenceTransformer:
     global _model
     if _model is None:
-        _model = SentenceTransformer(EMBEDDING_MODEL_NAME)
+        _model = SentenceTransformer(EMBEDDING_MODEL_NAME, local_files_only=EMBEDDING_LOCAL_FILES_ONLY)
     return _model
 
 
