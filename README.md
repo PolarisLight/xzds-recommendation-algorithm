@@ -2,6 +2,13 @@
 
 ![Recommendation System](figs/intro.png)
 
+## 0. 文档导航
+
+- 完整接口文档：[`docs/api-reference.md`](docs/api-reference.md)
+- 如果你需要查看**所有接口、所有请求字段、所有可接受配置项（含 V1/V2 差异、环境变量、行为权重、批量参数）**，请直接阅读上面的完整文档。
+
+---
+
 这是一个面向业务展示与交付的推荐系统项目，目标聚焦在三件事：
 
 - **个性化推荐**：能够基于用户近期行为持续调整推荐结果，让不同用户看到更贴合兴趣的内容。
@@ -185,7 +192,7 @@ uvicorn xzds_rec_v1.app:app --host 0.0.0.0 --port 8000 --reload
 
 ---
 
-## 4. 全部接口文档
+## 4. 接口快速示例（完整版本见 [`docs/api-reference.md`](docs/api-reference.md)）
 
 Base URL：`http://127.0.0.1:8000`
 
