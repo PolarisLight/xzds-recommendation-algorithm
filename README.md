@@ -1,6 +1,8 @@
 # xzds-recommendation-algorithm
 
-一个基于 **FastAPI + SQLite + Qdrant + 轻量文本向量模型** 的推荐系统示例项目，用于演示：
+![Recommendation System](figs/intro.png)
+
+一个基于 **FastAPI + SQLite + Qdrant + 轻量文本向量模型** 的推荐系统项目，用于演示：
 
 - 用户画像向量初始化与更新
 - 内容（文本标签）入库与向量化索引
