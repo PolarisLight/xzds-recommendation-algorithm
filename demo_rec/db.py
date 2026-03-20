@@ -2,7 +2,10 @@ import json
 
 import aiosqlite
 
-from config import SQLITE_PATH, VECTOR_DIM
+if __package__ in (None, ""):
+    from config import SQLITE_PATH, VECTOR_DIM
+else:
+    from .config import SQLITE_PATH, VECTOR_DIM
 
 CREATE_TABLES_SQL = """
 CREATE TABLE IF NOT EXISTS users (
@@ -39,11 +42,28 @@ async def _ensure_items_column(db, column_name: str, ddl: str):
         await db.execute(ddl)
 
 
+async def _reset_mismatched_user_vectors(db):
+    cur = await db.execute("SELECT user_id, profile_vector FROM users")
+    rows = await cur.fetchall()
+    for user_id, profile_vector in rows:
+        try:
+            vector = json.loads(profile_vector) if profile_vector else []
+        except json.JSONDecodeError:
+            vector = []
+        if len(vector) != VECTOR_DIM:
+            zero_vec = json.dumps([0.0] * VECTOR_DIM)
+            await db.execute(
+                "UPDATE users SET profile_vector=? WHERE user_id=?",
+                (zero_vec, user_id),
+            )
+
+
 async def init_db():
     async with aiosqlite.connect(SQLITE_PATH) as db:
         await db.executescript(CREATE_TABLES_SQL)
         # 兼容已存在的旧表结构
         await _ensure_items_column(db, "image_url", "ALTER TABLE items ADD COLUMN image_url TEXT")
+        await _reset_mismatched_user_vectors(db)
         await db.commit()
 
 
@@ -66,7 +86,10 @@ async def get_user_vector(user_id: str):
         row = await cur.fetchone()
         if row is None:
             return None
-        return json.loads(row[0])
+        vector = json.loads(row[0])
+        if len(vector) != VECTOR_DIM:
+            return [0.0] * VECTOR_DIM
+        return vector
 
 
 async def update_user_vector(user_id: str, vector):

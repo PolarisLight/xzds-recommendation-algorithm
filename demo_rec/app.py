@@ -3,27 +3,50 @@ from typing import Any, List, Optional
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
-from config import DEFAULT_K, SQLITE_PATH
-from db import (
-    create_user,
-    get_latest_items,
-    get_user_vector,
-    init_db,
-    insert_event,
-    insert_item,
-    update_user_vector,
-)
-from recommender import (
-    get_item_vector,
-    init_qdrant,
-    search_similar_items,
-    update_profile_vector,
-    upsert_item_to_qdrant,
-    get_qdrant_collection,
-    list_qdrant_collections,
-    qdrant_healthcheck,
-    scroll_qdrant_points,
-)
+if __package__ in (None, ""):
+    from config import DEFAULT_K, SQLITE_PATH
+    from db import (
+        create_user,
+        get_latest_items,
+        get_user_vector,
+        init_db,
+        insert_event,
+        insert_item,
+        update_user_vector,
+    )
+    from recommender import (
+        get_item_vector,
+        get_qdrant_collection,
+        init_qdrant,
+        list_qdrant_collections,
+        qdrant_healthcheck,
+        scroll_qdrant_points,
+        search_similar_items,
+        update_profile_vector,
+        upsert_item_to_qdrant,
+    )
+else:
+    from .config import DEFAULT_K, SQLITE_PATH
+    from .db import (
+        create_user,
+        get_latest_items,
+        get_user_vector,
+        init_db,
+        insert_event,
+        insert_item,
+        update_user_vector,
+    )
+    from .recommender import (
+        get_item_vector,
+        get_qdrant_collection,
+        init_qdrant,
+        list_qdrant_collections,
+        qdrant_healthcheck,
+        scroll_qdrant_points,
+        search_similar_items,
+        update_profile_vector,
+        upsert_item_to_qdrant,
+    )
 
 app = FastAPI(title="Demo Recommendation System")
 

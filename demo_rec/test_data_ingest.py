@@ -2,16 +2,16 @@ import json
 import sqlite3
 
 SQLITE_PATH = "demo_rec.sqlite"
-VECTOR_DIM = 512
+VECTOR_DIM = 384
 
 TEST_USER = {"user_id": "test_user_001"}
 TEST_ITEM = {
     "item_id": 10001,
     "title": "测试推文：春天来了",
-    "description": "这是一条用于验证入库功能的测试推文（包含图片）",
+    "description": "这是一条用于验证入库功能的测试推文（纯文本向量化）",
     "modality": "image_text",
     "author_id": "author_test_01",
-    "tags": ["测试", "推文", "入库", "多模态"],
+    "tags": ["测试", "推文", "入库", "纯文本"],
     "image_url": "https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d",
     "created_at": "2026-03-15 12:00:00",
 }
