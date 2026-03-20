@@ -5,6 +5,7 @@ import random
 import statistics
 import sys
 import types
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from time import perf_counter
 from types import SimpleNamespace
@@ -44,12 +45,10 @@ def install_recommender_stub():
 install_recommender_stub()
 import app as app_module
 
-# 压测时不需要执行真实 startup（否则会初始化 SQLite / Qdrant）。
-app_module.app.router.on_startup.clear()
-
 
 @dataclass
 class BenchmarkResult:
+    mode: str
     total_requests: int
     concurrency: int
     total_time_sec: float
@@ -83,8 +82,6 @@ class FakeRecommendationBackend:
             for item_id in self.item_vectors
         }
         self.candidate_pool_size = max(1, min(candidate_pool_size, items))
-        self.event_count = 0
-        self.update_count = 0
 
     @staticmethod
     def _build_vector(seed: int) -> List[float]:
@@ -99,11 +96,10 @@ class FakeRecommendationBackend:
         return self.item_vectors.get(item_id)
 
     async def insert_event(self, user_id: str, item_id: int, event_type: str):
-        self.event_count += 1
+        return None
 
     async def update_user_vector(self, user_id: str, vector):
         self.user_vectors[user_id] = vector
-        self.update_count += 1
 
     async def get_latest_items(self, limit: int = 20):
         latest_ids = sorted(self.items.keys(), reverse=True)[:limit]
@@ -117,12 +113,38 @@ class FakeRecommendationBackend:
             score = sum(u * i for u, i in zip(user_vec, item_vec))
             scored.append((score, item_id))
         scored.sort(key=lambda row: row[0], reverse=True)
+        return [
+            SimpleNamespace(id=item_id, score=score, payload=self.items[item_id])
+            for score, item_id in scored[:limit]
+        ]
 
-        points = []
-        for score, item_id in scored[:limit]:
-            payload = self.items[item_id]
-            points.append(SimpleNamespace(id=item_id, score=score, payload=payload))
-        return points
+
+def build_bootstrap_items(item_count: int) -> List[dict]:
+    items = []
+    for item_id in range(1, item_count + 1):
+        items.append(
+            {
+                "item_id": item_id,
+                "title": f"压测内容 {item_id}",
+                "description": f"真实链路压测内容 {item_id}",
+                "modality": "image_text",
+                "author_id": f"author_{item_id % 1000}",
+                "tags": ["benchmark", f"bucket-{item_id % 10}"],
+                "image_url": "",
+                "created_at": f"2026-03-{(item_id % 28) + 1:02d} 12:00:00",
+            }
+        )
+    return items
+
+
+async def bootstrap_fullstack_data(client: httpx.AsyncClient, user_ids: List[str], item_count: int):
+    users_resp = await client.post("/init/users", json={"users": user_ids})
+    if users_resp.status_code != 200:
+        raise AssertionError(f"bootstrap users failed: status={users_resp.status_code}, body={users_resp.text}")
+
+    items_resp = await client.post("/init/items", json={"items": build_bootstrap_items(item_count)})
+    if items_resp.status_code != 200:
+        raise AssertionError(f"bootstrap items failed: status={items_resp.status_code}, body={items_resp.text}")
 
 
 async def execute_single_request(client: httpx.AsyncClient, user_id: str, item_ids: List[int], events: List[str], k: int):
@@ -132,51 +154,22 @@ async def execute_single_request(client: httpx.AsyncClient, user_id: str, item_i
         "recent_events": events,
         "k": k,
     }
-
     start = perf_counter()
     response = await client.post("/feed/refresh", json=payload)
     latency_ms = (perf_counter() - start) * 1000
-
     if response.status_code != 200:
         raise AssertionError(f"request failed: status={response.status_code}, body={response.text}")
-
     return latency_ms, response.json()
 
 
-async def run_benchmark(args) -> BenchmarkResult:
+@asynccontextmanager
+async def isolated_client(args):
     backend = FakeRecommendationBackend(
         users=args.users,
         items=args.items,
         candidate_pool_size=args.candidate_pool_size,
     )
-    rng = random.Random(args.seed)
-    user_ids = list(backend.user_vectors.keys())
-    item_ids = list(backend.item_vectors.keys())
-    event_types = ["view", "like", "favorite"]
-    latencies = []
-    semaphore = asyncio.Semaphore(args.concurrency)
-
-    transport = httpx.ASGITransport(app=app_module.app)
-
-    async def worker(request_index: int, client: httpx.AsyncClient):
-        async with semaphore:
-            user_id = user_ids[request_index % len(user_ids)]
-            sampled_items = rng.sample(item_ids, k=args.events_per_request)
-            sampled_events = [
-                event_types[(request_index + offset) % len(event_types)]
-                for offset in range(args.events_per_request)
-            ]
-            latency_ms, response = await execute_single_request(
-                client,
-                user_id,
-                sampled_items,
-                sampled_events,
-                args.top_k,
-            )
-            if response.get("mode") not in {"personalized", "cold_start_latest"}:
-                raise AssertionError(f"unexpected response mode: {response}")
-            latencies.append(latency_ms)
-
+    app_module.app.router.on_startup.clear()
     patches = [
         patch.object(app_module, "get_user_vector", backend.get_user_vector),
         patch.object(app_module, "get_item_vector", backend.get_item_vector),
@@ -185,18 +178,66 @@ async def run_benchmark(args) -> BenchmarkResult:
         patch.object(app_module, "search_similar_items", backend.search_similar_items),
         patch.object(app_module, "get_latest_items", backend.get_latest_items),
     ]
-
     for mocked in patches:
         mocked.start()
 
-    started_at = perf_counter()
+    transport = httpx.ASGITransport(app=app_module.app)
     try:
         async with httpx.AsyncClient(transport=transport, base_url="http://benchmark.local") as client:
-            await asyncio.gather(*(worker(i, client) for i in range(args.requests)))
+            yield client
     finally:
         for mocked in reversed(patches):
             mocked.stop()
-    total_time = perf_counter() - started_at
+
+
+@asynccontextmanager
+async def fullstack_client(args):
+    async with httpx.AsyncClient(base_url=args.base_url, timeout=args.timeout_sec) as client:
+        ready = await client.get("/readyz")
+        if ready.status_code != 200:
+            raise AssertionError(f"readyz failed: status={ready.status_code}, body={ready.text}")
+        yield client
+
+
+async def run_benchmark(args) -> BenchmarkResult:
+    rng = random.Random(args.seed)
+    user_ids = [f"user_{idx:05d}" for idx in range(args.users)]
+    item_ids = list(range(1, args.items + 1))
+    event_types = ["view", "like", "favorite"]
+    latencies = []
+    semaphore = asyncio.Semaphore(args.concurrency)
+
+    if args.mode == "fullstack":
+        client_factory = fullstack_client
+    else:
+        client_factory = isolated_client
+
+    async with client_factory(args) as client:
+        if args.mode == "fullstack" and args.bootstrap_data:
+            await bootstrap_fullstack_data(client, user_ids, args.items)
+
+        async def worker(request_index: int):
+            async with semaphore:
+                user_id = user_ids[request_index % len(user_ids)]
+                sampled_items = rng.sample(item_ids, k=args.events_per_request)
+                sampled_events = [
+                    event_types[(request_index + offset) % len(event_types)]
+                    for offset in range(args.events_per_request)
+                ]
+                latency_ms, response = await execute_single_request(
+                    client,
+                    user_id,
+                    sampled_items,
+                    sampled_events,
+                    args.top_k,
+                )
+                if response.get("mode") not in {"personalized", "cold_start_latest"}:
+                    raise AssertionError(f"unexpected response mode: {response}")
+                latencies.append(latency_ms)
+
+        started_at = perf_counter()
+        await asyncio.gather(*(worker(i) for i in range(args.requests)))
+        total_time = perf_counter() - started_at
 
     sorted_latencies = sorted(latencies)
 
@@ -207,6 +248,7 @@ async def run_benchmark(args) -> BenchmarkResult:
         return sorted_latencies[index]
 
     return BenchmarkResult(
+        mode=args.mode,
         total_requests=args.requests,
         concurrency=args.concurrency,
         total_time_sec=total_time,
@@ -220,9 +262,10 @@ async def run_benchmark(args) -> BenchmarkResult:
 
 
 def format_interpretation(result: BenchmarkResult) -> List[str]:
+    mode_name = "真实全链路模式" if result.mode == "fullstack" else "隔离依赖模式"
     return [
         "",
-        "--- 指标解释 ---",
+        f"--- 指标解释（{mode_name}） ---",
         f"1) 这次一共压了 {result.total_requests} 个请求，并发度是 {result.concurrency}。",
         f"2) total_time_sec={result.total_time_sec:.3f}，表示这 {result.total_requests} 个请求总共用了 {result.total_time_sec:.3f} 秒跑完。",
         f"3) throughput_rps={result.throughput_rps:.2f}，表示系统当前大约每秒能处理 {result.throughput_rps:.2f} 个 /feed/refresh 请求。",
@@ -232,21 +275,23 @@ def format_interpretation(result: BenchmarkResult) -> List[str]:
         f"7) p99_latency_ms={result.p99_latency_ms:.2f}，表示 99% 的请求在 {result.p99_latency_ms:.2f} 毫秒内完成，只有 1% 更慢。",
         f"8) max_latency_ms={result.max_latency_ms:.2f}，表示这轮压测里最慢的那个请求用了 {result.max_latency_ms:.2f} 毫秒。",
         "",
-        "--- 如何判断好不好 ---",
-        "- 如果你关心吞吐：重点看 throughput_rps，值越大越好。",
-        "- 如果你关心用户体验：重点看 p95 / p99，值越小越好。",
-        "- avg 很容易被少数慢请求掩盖，线上更建议看 p95 / p99。",
-        "- 是否达标，取决于你的目标。例如目标是 100 QPS 且 P95 < 50ms，那么当前结果需要同时对照这两个门槛判断。",
+        "--- 模式说明 ---",
+        "- isolated：隔离 Qdrant / SQLite / 向量模型，适合先看应用层吞吐和接口逻辑开销。",
+        "- fullstack：连接真实服务，能够测到向量化、入库、检索等完整链路带来的实际延迟。",
     ]
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="推荐系统高负载/高并发性能压测脚本（通过真实 FastAPI app 发起 HTTP 请求）")
+    parser = argparse.ArgumentParser(description="推荐系统高负载/高并发性能压测脚本")
+    parser.add_argument("--mode", choices=["isolated", "fullstack"], default="isolated", help="isolated 为隔离依赖压测，fullstack 为真实依赖全链路压测")
+    parser.add_argument("--base-url", default="http://127.0.0.1:8000", help="fullstack 模式下真实服务地址")
+    parser.add_argument("--bootstrap-data", action="store_true", help="fullstack 模式下先通过 /init/users 和 /init/items 初始化压测数据")
+    parser.add_argument("--timeout-sec", type=float, default=120.0, help="fullstack 模式下单请求超时秒数")
     parser.add_argument("--requests", type=int, default=1000, help="总请求数")
     parser.add_argument("--concurrency", type=int, default=200, help="并发协程数")
     parser.add_argument("--users", type=int, default=500, help="参与压测的用户数")
     parser.add_argument("--items", type=int, default=2000, help="参与压测的内容数")
-    parser.add_argument("--candidate-pool-size", type=int, default=800, help="每次召回时参与打分的候选内容数")
+    parser.add_argument("--candidate-pool-size", type=int, default=800, help="isolated 模式下每次召回参与打分的候选内容数")
     parser.add_argument("--events-per-request", type=int, default=3, help="每个请求附带的行为数")
     parser.add_argument("--top-k", type=int, default=20, help="每次请求返回的推荐数量")
     parser.add_argument("--seed", type=int, default=20260320, help="随机种子，保证结果可复现")
@@ -267,6 +312,7 @@ def main():
     result = asyncio.run(run_benchmark(args))
 
     print("=== Recommendation App Load Benchmark ===")
+    print(f"mode               : {result.mode}")
     print(f"total_requests     : {result.total_requests}")
     print(f"concurrency        : {result.concurrency}")
     print(f"total_time_sec     : {result.total_time_sec:.3f}")

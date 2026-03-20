@@ -484,16 +484,28 @@ python demo_rec/test_data_ingest.py
 
 ---
 
-## 7. 性能测试
+## 7. 性能测试结果说明
 
+### 7.0 压测脚本说明
 
-仓库额外提供了一个纯 Python 压测脚本 `demo_rec/perf_test_high_load.py`，它会通过 **真实 FastAPI app** 的 `/feed/refresh` 接口发起 HTTP 请求，覆盖路由、请求校验、响应序列化等应用层逻辑；同时通过 stub/patch 隔离 Qdrant、SQLite 与向量模型，避免压测依赖外部基础设施。
+仓库额外提供了一个纯 Python 压测脚本 `demo_rec/perf_test_high_load.py`，支持两种模式：
+
+- `--mode isolated`：隔离 Qdrant、SQLite、向量模型，只测试 FastAPI 应用层和推荐接口逻辑，适合快速定位代码层瓶颈。
+- `--mode fullstack`：连接真实运行中的推荐服务，能够把 **向量化、入库、Qdrant 检索** 等真实依赖全部纳入延迟统计，更接近线上真实表现。
 
 示例：
 
 ```bash
-python demo_rec/perf_test_high_load.py --requests 2000 --concurrency 300 --users 1000 --items 5000
+# 快速看应用层开销
+python demo_rec/perf_test_high_load.py --mode isolated --requests 2000 --concurrency 300 --users 1000 --items 5000
+
+# 测真实全链路延迟（需要先启动服务，并准备好 SQLite / Qdrant / 向量模型）
+python demo_rec/perf_test_high_load.py --mode fullstack --base-url http://127.0.0.1:8000 --bootstrap-data --requests 2000 --concurrency 300 --users 1000 --items 5000
 ```
+
+脚本会输出总耗时、吞吐量（RPS）以及平均 / P50 / P95 / P99 延迟，便于快速评估推荐刷新链路在高负载场景下的表现。若要评估真实线上延迟，应优先使用 `fullstack` 模式。
+
+### 7.1 实际压测结果
 
 以下为一次实际压测结果：
 
@@ -510,7 +522,7 @@ p99_latency_ms     : 17.98
 max_latency_ms     : 38.42
 ```
 
-### 7.1 各指标含义
+### 7.2 各指标含义
 
 - `total_requests`: 本轮压测的总请求数，这里表示共发起了 `2000` 个推荐刷新请求。
 - `concurrency`: 并发数，这里表示压测过程中同时最多有 `300` 个请求在执行。
@@ -522,7 +534,7 @@ max_latency_ms     : 38.42
 - `p99_latency_ms`: 99 分位延迟，表示有 `99%` 的请求在 `17.98ms` 内完成。
 - `max_latency_ms`: 本轮压测中最慢请求的耗时，这里为 `38.42ms`。
 
-### 7.2 结果解读
+### 7.3 结果解读
 
 从这组数据来看，该推荐算法在实时性上已经可以满足一般的在线推荐刷新需求：
 
