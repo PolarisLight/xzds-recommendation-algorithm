@@ -118,6 +118,24 @@ async def create_user(user_id: str):
 
     await _run_with_db_retry(operation)
 
+    await _run_with_db_retry(operation)
+
+
+async def create_user(user_id: str):
+    async def operation():
+        async with await _connect() as db:
+            cur = await db.execute("SELECT user_id FROM users WHERE user_id=?", (user_id,))
+            row = await cur.fetchone()
+            if row is None:
+                zero_vec = json.dumps([0.0] * VECTOR_DIM)
+                await db.execute(
+                    "INSERT INTO users(user_id, profile_vector) VALUES(?, ?)",
+                    (user_id, zero_vec),
+                )
+                await db.commit()
+
+    await _run_with_db_retry(operation)
+
 
 async def get_user_vector(user_id: str):
     db = await _connect()
