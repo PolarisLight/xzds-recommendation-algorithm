@@ -51,6 +51,18 @@ pip install -r requirements.txt
 docker run -p 6333:6333 qdrant/qdrant
 ```
 
+## 2.2.1 高负载/高并发性能测试
+
+仓库额外提供了一个纯 Python 压测脚本 `demo_rec/perf_test_high_load.py`，它会通过 **真实 FastAPI app** 的 `/feed/refresh` 接口发起 HTTP 请求，覆盖路由、请求校验、响应序列化等应用层逻辑；同时通过 stub/patch 隔离 Qdrant、SQLite 与向量模型，避免压测依赖外部基础设施。
+
+示例：
+
+```bash
+python demo_rec/perf_test_high_load.py --requests 2000 --concurrency 300 --users 1000 --items 5000
+```
+
+脚本会输出总耗时、吞吐量（RPS）以及平均 / P50 / P95 / P99 延迟，便于快速评估推荐刷新链路在高负载场景下的表现。
+
 ## 2.3 启动服务
 
 在仓库根目录执行：

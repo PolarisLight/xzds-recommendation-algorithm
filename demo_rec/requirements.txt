@@ -8,3 +8,4 @@ sentence-transformers
 torch
 Pillow
 requests
+httpx
