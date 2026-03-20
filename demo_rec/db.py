@@ -34,6 +34,14 @@ CREATE TABLE IF NOT EXISTS user_events (
 """
 
 
+async def _connect_db():
+    db = await aiosqlite.connect(SQLITE_PATH)
+    await db.execute("PRAGMA journal_mode=WAL")
+    await db.execute("PRAGMA synchronous=NORMAL")
+    await db.execute("PRAGMA busy_timeout=5000")
+    return db
+
+
 async def _ensure_items_column(db, column_name: str, ddl: str):
     cur = await db.execute("PRAGMA table_info(items)")
     columns = await cur.fetchall()
@@ -59,16 +67,15 @@ async def _reset_mismatched_user_vectors(db):
 
 
 async def init_db():
-    async with aiosqlite.connect(SQLITE_PATH) as db:
+    async with await _connect_db() as db:
         await db.executescript(CREATE_TABLES_SQL)
-        # 兼容已存在的旧表结构
         await _ensure_items_column(db, "image_url", "ALTER TABLE items ADD COLUMN image_url TEXT")
         await _reset_mismatched_user_vectors(db)
         await db.commit()
 
 
 async def create_user(user_id: str):
-    async with aiosqlite.connect(SQLITE_PATH) as db:
+    async with await _connect_db() as db:
         cur = await db.execute("SELECT user_id FROM users WHERE user_id=?", (user_id,))
         row = await cur.fetchone()
         if row is None:
@@ -81,7 +88,7 @@ async def create_user(user_id: str):
 
 
 async def get_user_vector(user_id: str):
-    async with aiosqlite.connect(SQLITE_PATH) as db:
+    async with await _connect_db() as db:
         cur = await db.execute("SELECT profile_vector FROM users WHERE user_id=?", (user_id,))
         row = await cur.fetchone()
         if row is None:
@@ -93,7 +100,7 @@ async def get_user_vector(user_id: str):
 
 
 async def update_user_vector(user_id: str, vector):
-    async with aiosqlite.connect(SQLITE_PATH) as db:
+    async with await _connect_db() as db:
         await db.execute(
             "UPDATE users SET profile_vector=? WHERE user_id=?",
             (json.dumps(vector), user_id),
@@ -102,30 +109,40 @@ async def update_user_vector(user_id: str, vector):
 
 
 async def insert_item(item):
-    async with aiosqlite.connect(SQLITE_PATH) as db:
-        await db.execute(
+    await insert_items([item])
+
+
+async def insert_items(items):
+    if not items:
+        return
+    rows = [
+        (
+            item["item_id"],
+            item["title"],
+            item["description"],
+            item["modality"],
+            item.get("author_id", ""),
+            json.dumps(item.get("tags", []), ensure_ascii=False),
+            item.get("image_url", ""),
+            item.get("created_at", ""),
+        )
+        for item in items
+    ]
+    async with await _connect_db() as db:
+        await db.executemany(
             """
             INSERT OR REPLACE INTO items(
                 item_id, title, description, modality, author_id, tags, image_url, created_at
             )
             VALUES(?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (
-                item["item_id"],
-                item["title"],
-                item["description"],
-                item["modality"],
-                item.get("author_id", ""),
-                json.dumps(item.get("tags", []), ensure_ascii=False),
-                item.get("image_url", ""),
-                item.get("created_at", ""),
-            ),
+            rows,
         )
         await db.commit()
 
 
 async def insert_event(user_id: str, item_id: int, event_type: str):
-    async with aiosqlite.connect(SQLITE_PATH) as db:
+    async with await _connect_db() as db:
         await db.execute(
             "INSERT INTO user_events(user_id, item_id, event_type) VALUES(?, ?, ?)",
             (user_id, item_id, event_type),
@@ -134,7 +151,7 @@ async def insert_event(user_id: str, item_id: int, event_type: str):
 
 
 async def get_latest_items(limit=20):
-    async with aiosqlite.connect(SQLITE_PATH) as db:
+    async with await _connect_db() as db:
         cur = await db.execute(
             """
             SELECT item_id, title, description, modality, author_id, tags, image_url, created_at

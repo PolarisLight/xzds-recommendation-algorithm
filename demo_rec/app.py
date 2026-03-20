@@ -1,10 +1,12 @@
-from typing import Any, List, Optional
+from collections import defaultdict
+from typing import Any, List
 
+import asyncio
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 if __package__ in (None, ""):
-    from config import DEFAULT_K, SQLITE_PATH
+    from config import DEFAULT_K, SQLITE_PATH, VECTOR_UPSERT_BATCH_SIZE
     from db import (
         create_user,
         get_latest_items,
@@ -12,6 +14,7 @@ if __package__ in (None, ""):
         init_db,
         insert_event,
         insert_item,
+        insert_items,
         update_user_vector,
     )
     from recommender import (
@@ -24,9 +27,10 @@ if __package__ in (None, ""):
         search_similar_items,
         update_profile_vector,
         upsert_item_to_qdrant,
+        upsert_items_to_qdrant,
     )
 else:
-    from .config import DEFAULT_K, SQLITE_PATH
+    from .config import DEFAULT_K, SQLITE_PATH, VECTOR_UPSERT_BATCH_SIZE
     from .db import (
         create_user,
         get_latest_items,
@@ -34,6 +38,7 @@ else:
         init_db,
         insert_event,
         insert_item,
+        insert_items,
         update_user_vector,
     )
     from .recommender import (
@@ -46,9 +51,11 @@ else:
         search_similar_items,
         update_profile_vector,
         upsert_item_to_qdrant,
+        upsert_items_to_qdrant,
     )
 
 app = FastAPI(title="Demo Recommendation System")
+_user_refresh_locks: defaultdict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
 
 
 class UserInitRequest(BaseModel):
@@ -60,7 +67,7 @@ class ItemData(BaseModel):
     title: str
     description: str
     modality: str
-    author_id: str = ""  # 不用 Optional
+    author_id: str = ""
     tags: List[str] = Field(default_factory=list)
     image_url: str = ""
     created_at: str = ""
@@ -68,6 +75,7 @@ class ItemData(BaseModel):
 
 class ItemInitRequest(BaseModel):
     items: List[ItemData]
+    vector_batch_size: int = Field(default=VECTOR_UPSERT_BATCH_SIZE, ge=1, le=1000)
 
 
 class CreateUserRequest(BaseModel):
@@ -103,13 +111,14 @@ async def init_users(req: UserInitRequest):
 
 @app.post("/init/items")
 async def init_items(req: ItemInitRequest):
-    count = 0
-    for item in req.items:
-        item_dict = item.dict()
-        await insert_item(item_dict)
-        await upsert_item_to_qdrant(item_dict)
-        count += 1
-    return {"message": "items initialized", "count": count}
+    item_dicts = [item.dict() for item in req.items]
+    await insert_items(item_dicts)
+    await upsert_items_to_qdrant(item_dicts, batch_size=req.vector_batch_size)
+    return {
+        "message": "items initialized",
+        "count": len(item_dicts),
+        "vector_batch_size": req.vector_batch_size,
+    }
 
 
 @app.post("/users")
@@ -128,24 +137,25 @@ async def create_item(item: ItemData):
 
 @app.post("/feed/refresh")
 async def refresh_feed(req: EventRequest):
-    user_vec = await get_user_vector(req.user_id)
-    if user_vec is None:
-        raise HTTPException(status_code=404, detail="user not found")
+    async with _user_refresh_locks[req.user_id]:
+        user_vec = await get_user_vector(req.user_id)
+        if user_vec is None:
+            raise HTTPException(status_code=404, detail="user not found")
 
-    if len(req.recent_item_ids) != len(req.recent_events):
-        raise HTTPException(
-            status_code=400,
-            detail="recent_item_ids and recent_events length mismatch",
-        )
+        if len(req.recent_item_ids) != len(req.recent_events):
+            raise HTTPException(
+                status_code=400,
+                detail="recent_item_ids and recent_events length mismatch",
+            )
 
-    updated_vec = user_vec
-    for item_id, event_type in zip(req.recent_item_ids, req.recent_events):
-        item_vec = await get_item_vector(item_id)
-        if item_vec is not None:
-            updated_vec = update_profile_vector(updated_vec, item_vec, event_type)
-            await insert_event(req.user_id, item_id, event_type)
+        updated_vec = user_vec
+        for item_id, event_type in zip(req.recent_item_ids, req.recent_events):
+            item_vec = await get_item_vector(item_id)
+            if item_vec is not None:
+                updated_vec = update_profile_vector(updated_vec, item_vec, event_type)
+                await insert_event(req.user_id, item_id, event_type)
 
-    await update_user_vector(req.user_id, updated_vec)
+        await update_user_vector(req.user_id, updated_vec)
 
     if sum(abs(x) for x in updated_vec) < 1e-8:
         latest_items = await get_latest_items(limit=req.k or DEFAULT_K)

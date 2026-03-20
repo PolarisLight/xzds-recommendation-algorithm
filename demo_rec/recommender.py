@@ -14,6 +14,7 @@ if __package__ in (None, ""):
         QDRANT_LOCAL_PATH,
         QDRANT_URL,
         VECTOR_DIM,
+        VECTOR_UPSERT_BATCH_SIZE,
     )
 else:
     from .config import (
@@ -24,6 +25,7 @@ else:
         QDRANT_LOCAL_PATH,
         QDRANT_URL,
         VECTOR_DIM,
+        VECTOR_UPSERT_BATCH_SIZE,
     )
 
 _client_config = {"url": QDRANT_URL} if QDRANT_URL else {"path": QDRANT_LOCAL_PATH}
@@ -77,16 +79,15 @@ def embed_text(text: str):
     return emb.astype(np.float32).tolist()
 
 
-async def upsert_item_to_qdrant(item):
-    item_text = build_item_text(
-        item["title"],
-        item["description"],
-        item["modality"],
-        item.get("tags", []),
-    )
-    vector = embed_text(item_text)
+def embed_texts(texts):
+    model = get_text_embedding_model()
+    normalized_texts = [text or "empty" for text in texts]
+    embeddings = model.encode(normalized_texts, normalize_embeddings=True)
+    return embeddings.astype(np.float32).tolist()
 
-    point = PointStruct(
+
+def build_point(item, vector):
+    return PointStruct(
         id=item["item_id"],
         vector=vector,
         payload={
@@ -99,7 +100,31 @@ async def upsert_item_to_qdrant(item):
             "created_at": item.get("created_at", ""),
         },
     )
-    await client.upsert(collection_name=QDRANT_COLLECTION, points=[point])
+
+
+async def upsert_item_to_qdrant(item):
+    await upsert_items_to_qdrant([item], batch_size=1)
+
+
+async def upsert_items_to_qdrant(items, batch_size: int = VECTOR_UPSERT_BATCH_SIZE):
+    if not items:
+        return
+
+    safe_batch_size = max(1, batch_size)
+    for start in range(0, len(items), safe_batch_size):
+        batch = items[start : start + safe_batch_size]
+        item_texts = [
+            build_item_text(
+                item["title"],
+                item["description"],
+                item["modality"],
+                item.get("tags", []),
+            )
+            for item in batch
+        ]
+        vectors = embed_texts(item_texts)
+        points = [build_point(item, vector) for item, vector in zip(batch, vectors)]
+        await client.upsert(collection_name=QDRANT_COLLECTION, points=points)
 
 
 async def get_item_vector(item_id: int):

@@ -46,3 +46,6 @@ EVENT_ALPHA = {
 
 # cold start default result count
 DEFAULT_K = 20
+
+# 向量化/入库批次大小
+VECTOR_UPSERT_BATCH_SIZE = int(os.getenv("VECTOR_UPSERT_BATCH_SIZE", "64"))
