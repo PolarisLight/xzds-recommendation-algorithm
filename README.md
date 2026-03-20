@@ -1,9 +1,9 @@
 # xzds-recommendation-algorithm
 
-一个基于 **FastAPI + SQLite + Qdrant + 多模态向量模型** 的推荐系统示例项目，用于演示：
+一个基于 **FastAPI + SQLite + Qdrant + 轻量文本向量模型** 的推荐系统示例项目，用于演示：
 
 - 用户画像向量初始化与更新
-- 内容（图文）入库与向量化索引
+- 内容（文本标签）入库与向量化索引
 - 基于用户行为（view / like / favorite）的实时个性化推荐
 - 冷启动场景下的最新内容回退
 - Qdrant 集合和点位的调试接口
@@ -14,15 +14,15 @@
 
 本项目核心思路：
 
-1. **内容侧建模**：将每条内容（title / description / tags / image_url）转换为向量，并写入 Qdrant。
-2. **用户侧建模**：每个用户维护一个 512 维画像向量（SQLite 保存）。
+1. **内容侧建模**：将每条内容（title / description / tags）转换为文本向量，并写入 Qdrant。
+2. **用户侧建模**：每个用户维护一个 384 维画像向量（SQLite 保存）。
 3. **行为驱动更新**：用户发生 `view / like / favorite` 行为时，使用不同权重更新用户向量。
 4. **召回推荐**：用用户向量到 Qdrant 做相似检索，返回 Top-K 内容。
 5. **冷启动兜底**：当用户画像仍接近零向量时，返回按 `created_at` 倒序的最新内容。
 
 默认配置（见 `demo_rec/config.py`）：
 
-- 向量维度：`512`
+- 向量维度：`384`
 - Qdrant 地址：`http://localhost:6333`
 - 集合名：`items_demo`
 - 默认推荐数量：`20`
@@ -43,25 +43,41 @@ cd demo_rec
 pip install -r requirements.txt
 ```
 
-## 2.2 启动 Qdrant（示例）
+## 2.2 Qdrant 启动方式（二选一）
 
-如果本机尚未运行 Qdrant，可用 Docker 快速启动：
+项目现在默认会使用本地 `qdrant_data/` 目录作为嵌入式 Qdrant 存储，因此**不启动 Docker 也能直接跑起来**。如果你希望接外部 Qdrant 服务，再使用 Docker 或你自己的 Qdrant 实例即可。
+
+**方式 A：直接使用默认本地存储（推荐做开发调试）**
+
+```bash
+# 不需要额外启动 Qdrant
+```
+
+**方式 B：使用 Docker 启动独立 Qdrant 服务**
 
 ```bash
 docker run -p 6333:6333 qdrant/qdrant
 ```
 
+如果采用方式 B，请在启动应用前设置：
 
+```bash
+# Linux / macOS
+export QDRANT_URL=http://127.0.0.1:6333
 
-脚本会输出总耗时、吞吐量（RPS）以及平均 / P50 / P95 / P99 延迟，便于快速评估推荐刷新链路在高负载场景下的表现。
+# Windows PowerShell
+$env:QDRANT_URL="http://127.0.0.1:6333"
+```
 
 ## 2.3 启动服务
 
-在仓库根目录执行：
+在仓库根目录执行下面这条命令即可：
 
 ```bash
-uvicorn demo_rec.app:app --host 0.0.0.0 --port 8000 --reload --app-dir demo_rec
+uvicorn demo_rec.app:app --host 0.0.0.0 --port 8000 --reload
 ```
+
+> 如果你是直接运行单文件脚本（例如 `python demo_rec/perf_test_high_load.py`），项目也兼容。
 
 启动时会自动执行：
 
@@ -75,13 +91,13 @@ uvicorn demo_rec.app:app --host 0.0.0.0 --port 8000 --reload --app-dir demo_rec
 - Swagger UI: `http://127.0.0.1:8000/docs`
 - ReDoc: `http://127.0.0.1:8000/redoc`
 
-## 2.5 安装向量化模型sentence-clip
+## 2.5 安装轻量文本向量模型
 
-由于国内环境原因，可能需要自行下载向量化模型，并放置在特定位置（文件树中已留空，或自行修改config.py文件路径）
+默认优先按下面的顺序找模型：1）环境变量 `EMBEDDING_MODEL_NAME` 指定的路径或模型名；2）项目内的 `demo_rec/all-MiniLM-L6-v2` 本地目录；3）最后才回退到 Hugging Face 上的 `sentence-transformers/all-MiniLM-L6-v2`。如果解析到的是本地目录，代码会自动开启 `local_files_only=True`，不再请求 Hugging Face。若你想强制离线，也可以额外设置 `EMBEDDING_LOCAL_FILES_ONLY=1`。
 
-``` bash
-git clone https://huggingface.co/sentence-transformers/clip-ViT-B-32
-```
+应用启动时还会额外打印 `APP EMBEDDING_MODEL_NAME`、`APP EMBEDDING_MODEL_IS_LOCAL` 和 `APP EMBEDDING_LOCAL_FILES_ONLY`，便于确认实际加载的是哪个模型目录。
+
+高压全链路压测时，如果想把用户初始化、内容初始化、刷新请求拆开看，可以使用 `demo_rec/perf_test_high_load.py` 新增的 `--bootstrap-item-batch-size` 参数，把 item 初始化拆成多个批次提交；最终输出也会单独展示 user bootstrap、item bootstrap 和 refresh 请求的耗时。
 
 ---
 
@@ -474,7 +490,7 @@ python demo_rec/test_data_ingest.py
 
 ## 6. 注意事项
 
-- `image_url` 可为空；图片向量提取失败时会自动退化为纯文本向量。
+- `image_url` 可为空；系统当前仅使用标题、描述、标签做纯文本向量化；`image_url` 字段仅保留做业务透传，不参与 embedding。
 - `created_at` 建议使用可排序字符串格式（如 `YYYY-MM-DD HH:MM:SS`），以保证冷启动最新内容排序正确。
 - 行为权重默认：
   - `view`: 0.08
