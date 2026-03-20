@@ -99,6 +99,47 @@ async def init_db():
             await _ensure_items_column(db, "image_url", "ALTER TABLE items ADD COLUMN image_url TEXT")
             await _reset_mismatched_user_vectors(db)
             await db.commit()
+        finally:
+            await _close_db(db)
+
+    await _run_with_db_retry(operation)
+
+
+async def create_user(user_id: str):
+    async def operation():
+        db = await _connect()
+        try:
+            cur = await db.execute("SELECT user_id FROM users WHERE user_id=?", (user_id,))
+            row = await cur.fetchone()
+            if row is None:
+                zero_vec = json.dumps([0.0] * VECTOR_DIM)
+                await db.execute(
+                    "INSERT INTO users(user_id, profile_vector) VALUES(?, ?)",
+                    (user_id, zero_vec),
+                )
+                await db.commit()
+        finally:
+            await _close_db(db)
+
+    await _run_with_db_retry(operation)
+
+    await _run_with_db_retry(operation)
+
+
+async def create_user(user_id: str):
+    async def operation():
+        async with await _connect() as db:
+            cur = await db.execute("SELECT user_id FROM users WHERE user_id=?", (user_id,))
+            row = await cur.fetchone()
+            if row is None:
+                zero_vec = json.dumps([0.0] * VECTOR_DIM)
+                await db.execute(
+                    "INSERT INTO users(user_id, profile_vector) VALUES(?, ?)",
+                    (user_id, zero_vec),
+                )
+                await db.commit()
+
+    await _run_with_db_retry(operation)
 
     await _run_with_db_retry(operation)
 
@@ -210,6 +251,8 @@ async def get_latest_items(limit=20):
             (limit,),
         )
         rows = await cur.fetchall()
+    finally:
+        await _close_db(db)
 
     result = []
     for r in rows:
